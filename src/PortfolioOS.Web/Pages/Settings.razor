@@ -1,0 +1,72 @@
+@page "/settings"
+@inject PortfolioApiClient Api
+@inject ISnackbar Snackbar
+
+<PageTitle>Settings – PortfolioOS</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-4">Settings</MudText>
+
+<MudTable Items="@_settings" Dense="true" Hover="true" Loading="@_loading" Elevation="2">
+    <HeaderContent>
+        <MudTh>Key</MudTh>
+        <MudTh>Value</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.Key</MudTd>
+        <MudTd>
+            @if (_editing == context.Key)
+            {
+                <MudTextField @bind-Value="_editValue" Variant="Variant.Outlined" Dense="true" />
+            }
+            else
+            {
+                <MudText>@context.Value</MudText>
+            }
+        </MudTd>
+        <MudTd>
+            @if (_editing == context.Key)
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.Check" Color="Color.Success" Size="Size.Small"
+                               OnClick="@(() => SaveAsync(context.Key))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                               OnClick="@(() => _editing = null)" />
+            }
+            else
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                               OnClick="@(() => { _editing = context.Key; _editValue = context.Value; })" />
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>No settings configured.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    private List<SettingModel> _settings = [];
+    private bool _loading = true;
+    private string? _editing;
+    private string _editValue = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        _settings = await Api.GetSettingsAsync();
+        _loading = false;
+    }
+
+    private async Task SaveAsync(string key)
+    {
+        try
+        {
+            await Api.UpdateSettingAsync(key, _editValue);
+            var idx = _settings.FindIndex(s => s.Key == key);
+            if (idx >= 0) _settings[idx] = new SettingModel(key, _editValue);
+            _editing = null;
+            Snackbar.Add("Setting updated", Severity.Success);
+        }
+        catch { Snackbar.Add("Failed to save", Severity.Error); }
+    }
+}

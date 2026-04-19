@@ -1,0 +1,234 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Infrastructure\\PortfolioOS.Infrastructure.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Application\\PortfolioOS.Application.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Application\\PortfolioOS.Application.csproj",
+        "projectName": "PortfolioOS.Application",
+        "projectPath": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Application\\PortfolioOS.Application.csproj",
+        "packagesPath": "C:\\Users\\jfran\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Application\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\jfran\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "C:\\Program Files\\dotnet\\library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {
+              "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Domain\\PortfolioOS.Domain.csproj": {
+                "projectPath": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Domain\\PortfolioOS.Domain.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "AutoMapper": {
+              "target": "Package",
+              "version": "[16.1.1, )"
+            },
+            "FluentValidation": {
+              "target": "Package",
+              "version": "[12.1.1, )"
+            },
+            "FluentValidation.DependencyInjectionExtensions": {
+              "target": "Package",
+              "version": "[12.1.1, )"
+            },
+            "MediatR": {
+              "target": "Package",
+              "version": "[14.1.0, )"
+            },
+            "Microsoft.EntityFrameworkCore": {
+              "target": "Package",
+              "version": "[8.0.11, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.402/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Domain\\PortfolioOS.Domain.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Domain\\PortfolioOS.Domain.csproj",
+        "projectName": "PortfolioOS.Domain",
+        "projectPath": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Domain\\PortfolioOS.Domain.csproj",
+        "packagesPath": "C:\\Users\\jfran\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Domain\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\jfran\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "C:\\Program Files\\dotnet\\library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.402/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Infrastructure\\PortfolioOS.Infrastructure.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Infrastructure\\PortfolioOS.Infrastructure.csproj",
+        "projectName": "PortfolioOS.Infrastructure",
+        "projectPath": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Infrastructure\\PortfolioOS.Infrastructure.csproj",
+        "packagesPath": "C:\\Users\\jfran\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Infrastructure\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\jfran\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "C:\\Program Files\\dotnet\\library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {
+              "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Application\\PortfolioOS.Application.csproj": {
+                "projectPath": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Application\\PortfolioOS.Application.csproj"
+              },
+              "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Domain\\PortfolioOS.Domain.csproj": {
+                "projectPath": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Domain\\PortfolioOS.Domain.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "Microsoft.EntityFrameworkCore.Design": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[8.0.11, )"
+            },
+            "Microsoft.Extensions.Http": {
+              "target": "Package",
+              "version": "[8.0.1, )"
+            },
+            "Npgsql.EntityFrameworkCore.PostgreSQL": {
+              "target": "Package",
+              "version": "[8.0.11, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.402/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,173 @@
+@page "/debts"
+@inject PortfolioApiClient Api
+@inject ISnackbar Snackbar
+@inject AppState AppState
+
+<PageTitle>Debts – PortfolioOS</PageTitle>
+
+<div class="d-flex align-center mb-4">
+    <MudText Typo="Typo.h5">Debt Tracker</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="OpenCreateDialog">Add Debt</MudButton>
+</div>
+
+@if (!_loading && _debts.Count > 0)
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Outstanding</MudText>
+                <MudText Typo="Typo.h5">@AppState.FormatValue(_debts.Sum(d => d.Balance))</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Paid</MudText>
+                <MudText Typo="Typo.h5" Color="Color.Success">@AppState.FormatValue(_debts.Sum(d => d.TotalPaid))</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Monthly Min. Payment</MudText>
+                <MudText Typo="Typo.h5">@AppState.FormatValue(_debts.Where(d => d.Status == "Active").Sum(d => d.MinimumPayment))</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+<MudTable Items="@_debts" Dense="true" Hover="true" Loading="@_loading" Elevation="2">
+    <HeaderContent>
+        <MudTh>Name</MudTh>
+        <MudTh>Type</MudTh>
+        <MudTh Style="text-align:right">Balance</MudTh>
+        <MudTh Style="text-align:right">Rate</MudTh>
+        <MudTh Style="text-align:right">Min Payment</MudTh>
+        <MudTh Style="text-align:right">Total Paid</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Due Day</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd><b>@context.Name</b></MudTd>
+        <MudTd>@context.Type</MudTd>
+        <MudTd Style="text-align:right">@AppState.FormatValue(context.Balance)</MudTd>
+        <MudTd Style="text-align:right">@context.InterestRate.ToString("F2")%</MudTd>
+        <MudTd Style="text-align:right">@AppState.FormatValue(context.MinimumPayment)</MudTd>
+        <MudTd Style="text-align:right">@AppState.FormatValue(context.TotalPaid)</MudTd>
+        <MudTd>
+            <MudChip T="string" Size="Size.Small" Color="@(context.Status == "Active" ? Color.Warning : Color.Success)">
+                @context.Status
+            </MudChip>
+        </MudTd>
+        <MudTd>@context.DueDay</MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OpenEditDialog(context))" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                           OnClick="@(() => DeleteAsync(context))" />
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+<MudDialog @bind-Visible="_showDialog">
+    <TitleContent><MudText Typo="Typo.h6">@(_editing ? "Edit Debt" : "Add Debt")</MudText></TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_form.Name" Label="Name" Variant="Variant.Outlined" Class="mb-3" />
+        <MudSelect @bind-Value="_form.Type" Label="Type" Variant="Variant.Outlined" Class="mb-3">
+            @foreach (var t in new[] { "CreditCard", "PersonalLoan", "Mortgage", "AutoLoan", "StudentLoan", "Other" })
+            { <MudSelectItem Value="@t">@t</MudSelectItem> }
+        </MudSelect>
+        <MudNumericField @bind-Value="_form.Balance" Label="Balance" Variant="Variant.Outlined" Class="mb-3" Format="F2" />
+        <MudNumericField @bind-Value="_form.InterestRate" Label="Annual Interest Rate (%)" Variant="Variant.Outlined" Class="mb-3" Format="F2" />
+        <MudNumericField @bind-Value="_form.MinimumPayment" Label="Minimum Payment" Variant="Variant.Outlined" Class="mb-3" Format="F2" />
+        <MudNumericField @bind-Value="_form.DueDay" Label="Due Day (1-31)" Variant="Variant.Outlined" Class="mb-3" />
+        <MudSelect @bind-Value="_form.Currency" Label="Currency" Variant="Variant.Outlined" Class="mb-3">
+            <MudSelectItem Value="@("USD")">USD</MudSelectItem>
+            <MudSelectItem Value="@("IDR")">IDR</MudSelectItem>
+        </MudSelect>
+        <MudTextField @bind-Value="_form.DebtApp" Label="App / Bank" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="_form.Notes" Label="Notes" Variant="Variant.Outlined" Lines="2" Class="mb-3" />
+        @if (_editing)
+        {
+            <MudSelect @bind-Value="_form.Status" Label="Status" Variant="Variant.Outlined">
+                <MudSelectItem Value="@("Active")">Active</MudSelectItem>
+                <MudSelectItem Value="@("Lunas")">Lunas (Paid Off)</MudSelectItem>
+            </MudSelect>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showDialog = false)">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<DebtModel> _debts = [];
+    private bool _loading = true;
+    private bool _showDialog;
+    private bool _editing;
+    private bool _saving;
+    private Guid _editId;
+    private DebtForm _form = new();
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _debts = await Api.GetDebtsAsync();
+        _loading = false;
+    }
+
+    private void OpenCreateDialog() { _editing = false; _form = new(); _showDialog = true; }
+
+    private void OpenEditDialog(DebtModel d)
+    {
+        _editing = true;
+        _editId = d.Id;
+        _form = new()
+        {
+            Name = d.Name, Type = d.Type, Balance = d.Balance, InterestRate = d.InterestRate,
+            MinimumPayment = d.MinimumPayment, DueDay = d.DueDay, Currency = d.Currency,
+            DebtApp = d.DebtApp, Notes = d.Notes, Status = d.Status
+        };
+        _showDialog = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            if (_editing)
+                await Api.UpdateDebtAsync(_editId, new { name = _form.Name, type = _form.Type, balance = _form.Balance, interestRate = _form.InterestRate, monthlyInterestRate = (decimal?)null, tenor = (int?)null, minimumPayment = _form.MinimumPayment, dueDay = _form.DueDay, currency = _form.Currency, debtApp = _form.DebtApp, notes = _form.Notes, status = _form.Status });
+            else
+                await Api.CreateDebtAsync(new { name = _form.Name, type = _form.Type, balance = _form.Balance, interestRate = _form.InterestRate, monthlyInterestRate = (decimal?)null, tenor = (int?)null, minimumPayment = _form.MinimumPayment, dueDay = _form.DueDay, currency = _form.Currency, debtApp = _form.DebtApp, notes = _form.Notes });
+            _showDialog = false;
+            Snackbar.Add("Saved", Severity.Success);
+            await LoadAsync();
+        }
+        catch { Snackbar.Add("Failed to save", Severity.Error); }
+        _saving = false;
+    }
+
+    private async Task DeleteAsync(DebtModel d)
+    {
+        try { await Api.DeleteDebtAsync(d.Id); await LoadAsync(); }
+        catch { Snackbar.Add("Failed to delete", Severity.Error); }
+    }
+
+    private class DebtForm
+    {
+        public string Name { get; set; } = "";
+        public string Type { get; set; } = "CreditCard";
+        public decimal Balance { get; set; }
+        public decimal InterestRate { get; set; }
+        public decimal MinimumPayment { get; set; }
+        public int DueDay { get; set; } = 1;
+        public string Currency { get; set; } = "USD";
+        public string DebtApp { get; set; } = "";
+        public string Notes { get; set; } = "";
+        public string Status { get; set; } = "Active";
+    }
+}

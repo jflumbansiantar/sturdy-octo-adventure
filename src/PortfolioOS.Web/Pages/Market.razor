@@ -1,0 +1,64 @@
+@page "/market"
+@inject PortfolioApiClient Api
+@inject ISnackbar Snackbar
+
+<PageTitle>Market – PortfolioOS</PageTitle>
+
+<div class="d-flex align-center mb-4">
+    <MudText Typo="Typo.h5">Live Market Quotes</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh"
+               OnClick="RefreshAsync" Disabled="_loading">Refresh</MudButton>
+</div>
+
+<MudTable Items="@_quotes" Dense="true" Hover="true" Loading="@_loading" Elevation="2">
+    <HeaderContent>
+        <MudTh>Ticker</MudTh>
+        <MudTh Style="text-align:right">Price</MudTh>
+        <MudTh Style="text-align:right">Prev Close</MudTh>
+        <MudTh Style="text-align:right">Day Change</MudTh>
+        <MudTh Style="text-align:right">Day %</MudTh>
+        <MudTh>Currency</MudTh>
+        <MudTh>Updated</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd><b>@context.Ticker</b></MudTd>
+        <MudTd Style="text-align:right">@context.CurrentPrice.ToString("F2")</MudTd>
+        <MudTd Style="text-align:right">@context.PreviousClose.ToString("F2")</MudTd>
+        <MudTd Style="text-align:right">
+            <MudText Color="@(context.DayChange >= 0 ? Color.Success : Color.Error)">
+                @(context.DayChange >= 0 ? "+" : "")@context.DayChange.ToString("F2")
+            </MudText>
+        </MudTd>
+        <MudTd Style="text-align:right">
+            <MudText Color="@(context.DayChangePct >= 0 ? Color.Success : Color.Error)">
+                @(context.DayChangePct >= 0 ? "+" : "")@context.DayChangePct.ToString("F2")%
+            </MudText>
+        </MudTd>
+        <MudTd>@context.Currency</MudTd>
+        <MudTd>@context.UpdatedAt.LocalDateTime.ToString("HH:mm:ss")</MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>No quotes loaded. Click Refresh to fetch live data.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    private List<QuoteModel> _quotes = [];
+    private bool _loading;
+
+    protected override async Task OnInitializedAsync() => await RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        _loading = true;
+        try
+        {
+            _quotes = await Api.GetQuotesAsync();
+            if (_quotes.Count == 0)
+                Snackbar.Add("No holdings found to quote", Severity.Info);
+        }
+        catch { Snackbar.Add("Failed to fetch quotes", Severity.Error); }
+        _loading = false;
+    }
+}

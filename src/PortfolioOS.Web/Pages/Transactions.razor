@@ -1,0 +1,157 @@
+@page "/transactions"
+@inject PortfolioApiClient Api
+@inject ISnackbar Snackbar
+@inject AppState AppState
+
+<PageTitle>Transactions – PortfolioOS</PageTitle>
+
+<div class="d-flex align-center mb-4">
+    <MudText Typo="Typo.h5">Transactions</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="@(() => _showDialog = true)">Add</MudButton>
+</div>
+
+<MudPaper Class="pa-3 mb-4" Elevation="1">
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudSelect T="string" Value="_filterCategory" Label="Category" Clearable="true" Variant="Variant.Outlined"
+                       ValueChanged="@(async (string? v) => { _filterCategory = v; await LoadAsync(); })">
+                @foreach (var c in new[] { "Stock", "Debt", "Income", "Expense" })
+                { <MudSelectItem T="string" Value="@c">@c</MudSelectItem> }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudDatePicker Date="_from" Label="From" Variant="Variant.Outlined"
+                           DateChanged="@(async (DateTime? d) => { _from = d; await LoadAsync(); })" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudDatePicker Date="_to" Label="To" Variant="Variant.Outlined"
+                           DateChanged="@(async (DateTime? d) => { _to = d; await LoadAsync(); })" />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudTable Items="@_transactions" Dense="true" Hover="true" Loading="@_loading" Elevation="2">
+    <HeaderContent>
+        <MudTh>Date</MudTh>
+        <MudTh>Category</MudTh>
+        <MudTh>Name</MudTh>
+        <MudTh>Type</MudTh>
+        <MudTh>Market</MudTh>
+        <MudTh Style="text-align:right">Shares</MudTh>
+        <MudTh Style="text-align:right">Price</MudTh>
+        <MudTh Style="text-align:right">Total</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.Date.ToString("dd MMM yyyy")</MudTd>
+        <MudTd><MudChip T="string" Size="Size.Small">@context.Category</MudChip></MudTd>
+        <MudTd>@context.Name</MudTd>
+        <MudTd>@context.Type</MudTd>
+        <MudTd>@context.Market</MudTd>
+        <MudTd Style="text-align:right">@context.Shares?.ToString("F4")</MudTd>
+        <MudTd Style="text-align:right">@context.Price?.ToString("F2")</MudTd>
+        <MudTd Style="text-align:right">@AppState.FormatValue(context.Total)</MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                           OnClick="@(() => DeleteAsync(context))" />
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+<MudDialog @bind-Visible="_showDialog">
+    <TitleContent><MudText Typo="Typo.h6">Add Transaction</MudText></TitleContent>
+    <DialogContent>
+        <MudDatePicker @bind-Date="_form.Date" Label="Date" Variant="Variant.Outlined" Class="mb-3" />
+        <MudSelect @bind-Value="_form.Category" Label="Category" Variant="Variant.Outlined" Class="mb-3">
+            @foreach (var c in new[] { "Stock", "Debt", "Income", "Expense" })
+            { <MudSelectItem Value="@c">@c</MudSelectItem> }
+        </MudSelect>
+        <MudTextField @bind-Value="_form.Name" Label="Name" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="_form.Type" Label="Type (e.g. BUY, SELL, PAYMENT)" Variant="Variant.Outlined" Class="mb-3" />
+        <MudNumericField @bind-Value="_form.Total" Label="Total (USD)" Variant="Variant.Outlined" Class="mb-3" Format="F2" />
+        @if (_form.Category == "Stock")
+        {
+            <MudSelect @bind-Value="_form.Market" Label="Market" Variant="Variant.Outlined" Class="mb-3">
+                <MudSelectItem Value="@("US")">US</MudSelectItem>
+                <MudSelectItem Value="@("ID")">Indonesia (IDX)</MudSelectItem>
+            </MudSelect>
+            <MudNumericField @bind-Value="_form.Shares" Label="Shares" Variant="Variant.Outlined" Class="mb-3" Format="F4" />
+            <MudNumericField @bind-Value="_form.Price" Label="Price" Variant="Variant.Outlined" Format="F2" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showDialog = false)">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<TransactionModel> _transactions = [];
+    private bool _loading = true;
+    private bool _showDialog;
+    private bool _saving;
+    private string? _filterCategory;
+    private DateTime? _from;
+    private DateTime? _to;
+    private TransactionForm _form = new();
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var f = _from.HasValue ? DateOnly.FromDateTime(_from.Value) : (DateOnly?)null;
+        var t = _to.HasValue ? DateOnly.FromDateTime(_to.Value) : (DateOnly?)null;
+        _transactions = await Api.GetTransactionsAsync(_filterCategory, f, t);
+        _loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            var date = _form.Date.HasValue ? DateOnly.FromDateTime(_form.Date.Value) : DateOnly.FromDateTime(DateTime.Today);
+            await Api.CreateTransactionAsync(new
+            {
+                date,
+                category = _form.Category,
+                name = _form.Name,
+                type = _form.Type,
+                total = _form.Total,
+                market = _form.Category == "Stock" ? _form.Market : null,
+                shares = _form.Category == "Stock" ? _form.Shares : (decimal?)null,
+                price = _form.Category == "Stock" ? _form.Price : (decimal?)null
+            });
+            _showDialog = false;
+            Snackbar.Add("Transaction saved", Severity.Success);
+            await LoadAsync();
+        }
+        catch { Snackbar.Add("Failed to save", Severity.Error); }
+        _saving = false;
+    }
+
+    private async Task DeleteAsync(TransactionModel t)
+    {
+        try
+        {
+            await Api.DeleteTransactionAsync(t.Id);
+            await LoadAsync();
+        }
+        catch { Snackbar.Add("Failed to delete", Severity.Error); }
+    }
+
+    private class TransactionForm
+    {
+        public DateTime? Date { get; set; } = DateTime.Today;
+        public string Category { get; set; } = "Stock";
+        public string Name { get; set; } = "";
+        public string Type { get; set; } = "BUY";
+        public decimal Total { get; set; }
+        public string? Market { get; set; } = "US";
+        public decimal? Shares { get; set; }
+        public decimal? Price { get; set; }
+    }
+}

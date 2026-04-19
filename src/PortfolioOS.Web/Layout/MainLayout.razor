@@ -1,0 +1,56 @@
+@inherits LayoutComponentBase
+@inject AuthService AuthService
+@inject NavigationManager Nav
+@inject AppState AppState
+
+@if (_checked && _authenticated)
+{
+    <MudLayout>
+        <MudAppBar Elevation="1" Color="Color.Dark">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                           OnClick="@(() => _drawerOpen = !_drawerOpen)" />
+            <MudText Typo="Typo.h6" Class="ml-2">PortfolioOS</MudText>
+            <MudSpacer />
+            <MudIconButton Icon="@(AppState.PrivacyMode ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                           Color="Color.Inherit" Title="Toggle Privacy" OnClick="AppState.TogglePrivacy" />
+            <MudButton Color="Color.Inherit" OnClick="AppState.ToggleCurrency">
+                @(AppState.ShowInIDR ? "IDR" : "USD")
+            </MudButton>
+            <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="LogoutAsync" />
+        </MudAppBar>
+
+        <MudDrawer @bind-Open="_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Always">
+            <NavMenu />
+        </MudDrawer>
+
+        <MudMainContent>
+            <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-4">
+                @Body
+            </MudContainer>
+        </MudMainContent>
+    </MudLayout>
+}
+else if (_checked)
+{
+    @Body
+}
+
+@code {
+    private bool _drawerOpen = true;
+    private bool _checked;
+    private bool _authenticated;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _authenticated = await AuthService.IsAuthenticatedAsync();
+        _checked = true;
+        if (!_authenticated && !Nav.Uri.Contains("/login"))
+            Nav.NavigateTo("/login");
+    }
+
+    private async Task LogoutAsync()
+    {
+        await AuthService.ClearTokenAsync();
+        Nav.NavigateTo("/login");
+    }
+}

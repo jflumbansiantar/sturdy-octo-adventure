@@ -1,0 +1,169 @@
+@page "/holdings"
+@inject PortfolioApiClient Api
+@inject IDialogService Dialog
+@inject ISnackbar Snackbar
+@inject AppState AppState
+
+<PageTitle>Holdings – PortfolioOS</PageTitle>
+
+<div class="d-flex align-center mb-4">
+    <MudText Typo="Typo.h5">Holdings</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="OpenCreateDialog">Add Holding</MudButton>
+</div>
+
+<MudTable Items="@_holdings" Dense="true" Hover="true" Loading="@_loading" Elevation="2">
+    <HeaderContent>
+        <MudTh>Ticker</MudTh>
+        <MudTh>Name</MudTh>
+        <MudTh>Type</MudTh>
+        <MudTh>Market</MudTh>
+        <MudTh Style="text-align:right">Shares</MudTh>
+        <MudTh Style="text-align:right">Avg Cost</MudTh>
+        <MudTh Style="text-align:right">Price</MudTh>
+        <MudTh Style="text-align:right">Market Value</MudTh>
+        <MudTh Style="text-align:right">Gain/Loss</MudTh>
+        <MudTh Style="text-align:right">Day %</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.Ticker</MudTd>
+        <MudTd>@context.Name</MudTd>
+        <MudTd>@context.Type</MudTd>
+        <MudTd><MudChip T="string" Size="Size.Small">@context.Market</MudChip></MudTd>
+        <MudTd Style="text-align:right">@context.Shares.ToString("F4")</MudTd>
+        <MudTd Style="text-align:right">@context.AvgCost.ToString("F2")</MudTd>
+        <MudTd Style="text-align:right">@context.CurrentPrice.ToString("F2")</MudTd>
+        <MudTd Style="text-align:right">@AppState.FormatValue(context.MarketValue)</MudTd>
+        <MudTd Style="text-align:right">
+            <MudText Color="@(context.GainLoss >= 0 ? Color.Success : Color.Error)">
+                @AppState.FormatValue(context.GainLoss)<br />
+                <MudText Typo="Typo.caption">@context.GainLossPct.ToString("F2")%</MudText>
+            </MudText>
+        </MudTd>
+        <MudTd Style="text-align:right">
+            <MudText Color="@(context.DayChangePct >= 0 ? Color.Success : Color.Error)">
+                @context.DayChangePct.ToString("F2")%
+            </MudText>
+        </MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                           OnClick="@(() => OpenEditDialog(context))" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                           OnClick="@(() => DeleteAsync(context))" />
+        </MudTd>
+    </RowTemplate>
+    <FooterContent>
+        <MudTd colspan="7"><b>Total</b></MudTd>
+        <MudTd Style="text-align:right"><b>@AppState.FormatValue(_holdings.Sum(h => h.MarketValue))</b></MudTd>
+        <MudTd Style="text-align:right">
+            <MudText Color="@(_holdings.Sum(h => h.GainLoss) >= 0 ? Color.Success : Color.Error)">
+                <b>@AppState.FormatValue(_holdings.Sum(h => h.GainLoss))</b>
+            </MudText>
+        </MudTd>
+        <MudTd colspan="2"></MudTd>
+    </FooterContent>
+</MudTable>
+
+<MudDialog @bind-Visible="_showDialog">
+    <TitleContent><MudText Typo="Typo.h6">@(_editing ? "Edit Holding" : "Add Holding")</MudText></TitleContent>
+    <DialogContent>
+        @if (!_editing)
+        {
+            <MudTextField @bind-Value="_form.Ticker" Label="Ticker" Variant="Variant.Outlined" Class="mb-3" />
+        }
+        <MudTextField @bind-Value="_form.Name" Label="Name" Variant="Variant.Outlined" Class="mb-3" />
+        <MudSelect @bind-Value="_form.Type" Label="Type" Variant="Variant.Outlined" Class="mb-3">
+            @foreach (var t in new[] { "Stock", "ETF", "Crypto", "MutualFund" })
+            { <MudSelectItem Value="@t">@t</MudSelectItem> }
+        </MudSelect>
+        <MudTextField @bind-Value="_form.SubType" Label="Sub-Type" Variant="Variant.Outlined" Class="mb-3" />
+        <MudSelect @bind-Value="_form.Market" Label="Market" Variant="Variant.Outlined" Class="mb-3">
+            <MudSelectItem Value="@("US")">US</MudSelectItem>
+            <MudSelectItem Value="@("ID")">Indonesia (IDX)</MudSelectItem>
+        </MudSelect>
+        <MudNumericField @bind-Value="_form.Shares" Label="Shares" Variant="Variant.Outlined" Class="mb-3" Format="F4" />
+        <MudNumericField @bind-Value="_form.AvgCost" Label="Avg Cost (USD)" Variant="Variant.Outlined" Format="F2" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showDialog = false)">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving">
+            @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<HoldingModel> _holdings = [];
+    private bool _loading = true;
+    private bool _showDialog;
+    private bool _editing;
+    private bool _saving;
+    private Guid _editId;
+    private HoldingForm _form = new();
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _holdings = await Api.GetHoldingsAsync();
+        _loading = false;
+    }
+
+    private void OpenCreateDialog()
+    {
+        _editing = false;
+        _form = new();
+        _showDialog = true;
+    }
+
+    private void OpenEditDialog(HoldingModel h)
+    {
+        _editing = true;
+        _editId = h.Id;
+        _form = new() { Ticker = h.Ticker, Name = h.Name, Type = h.Type, SubType = h.SubType, Market = h.Market, Shares = h.Shares, AvgCost = h.AvgCost };
+        _showDialog = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            if (_editing)
+                await Api.UpdateHoldingAsync(_editId, new { name = _form.Name, type = _form.Type, subType = _form.SubType, market = _form.Market, shares = _form.Shares, avgCost = _form.AvgCost });
+            else
+                await Api.CreateHoldingAsync(new { ticker = _form.Ticker, name = _form.Name, type = _form.Type, subType = _form.SubType, market = _form.Market, shares = _form.Shares, avgCost = _form.AvgCost });
+            _showDialog = false;
+            Snackbar.Add("Saved successfully", Severity.Success);
+            await LoadAsync();
+        }
+        catch { Snackbar.Add("Failed to save", Severity.Error); }
+        _saving = false;
+    }
+
+    private async Task DeleteAsync(HoldingModel h)
+    {
+        try
+        {
+            await Api.DeleteHoldingAsync(h.Id);
+            Snackbar.Add($"{h.Ticker} deleted", Severity.Info);
+            await LoadAsync();
+        }
+        catch { Snackbar.Add("Failed to delete", Severity.Error); }
+    }
+
+    private class HoldingForm
+    {
+        public string Ticker { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Type { get; set; } = "Stock";
+        public string SubType { get; set; } = "";
+        public string Market { get; set; } = "US";
+        public decimal Shares { get; set; }
+        public decimal AvgCost { get; set; }
+    }
+}

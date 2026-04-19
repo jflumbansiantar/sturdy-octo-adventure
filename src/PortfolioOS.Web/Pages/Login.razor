@@ -1,0 +1,58 @@
+@page "/login"
+@inject PortfolioApiClient Api
+@inject AuthService AuthService
+@inject NavigationManager Nav
+
+<PageTitle>Login – PortfolioOS</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+    <MudCard Elevation="4">
+        <MudCardContent>
+            <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-6">PortfolioOS</MudText>
+            <MudTextField @bind-Value="_username" Label="Username" Variant="Variant.Outlined" Class="mb-3"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person" />
+            <MudTextField @bind-Value="_password" Label="Password" Variant="Variant.Outlined"
+                          InputType="InputType.Password"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Lock" />
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
+            }
+        </MudCardContent>
+        <MudCardActions Class="px-4 pb-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                       OnClick="LoginAsync" Disabled="_loading">
+                @if (_loading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+                Login
+            </MudButton>
+        </MudCardActions>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private string _username = "";
+    private string _password = "";
+    private string? _error;
+    private bool _loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (await AuthService.IsAuthenticatedAsync())
+            Nav.NavigateTo("/");
+    }
+
+    private async Task LoginAsync()
+    {
+        _error = null;
+        _loading = true;
+        var result = await Api.LoginAsync(_username, _password);
+        _loading = false;
+        if (result is null)
+        {
+            _error = "Invalid username or password.";
+            return;
+        }
+        await AuthService.SetTokenAsync(result.Token);
+        Nav.NavigateTo("/");
+    }
+}

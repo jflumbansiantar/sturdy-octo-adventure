@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "PhBE+4gzFledfw5L1t6VPB3et2QLA89x7Tftge7D+ow=",
+  "Source": "PortfolioOS.API",
+  "BasePath": "_content/PortfolioOS.API",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}

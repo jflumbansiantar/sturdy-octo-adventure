@@ -1,0 +1,261 @@
+@page "/ledger"
+@inject PortfolioApiClient Api
+@inject ISnackbar Snackbar
+
+<PageTitle>Ledger – PortfolioOS</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-4">Ledger</MudText>
+
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true">
+    <MudTabPanel Text="Chart of Accounts" Icon="@Icons.Material.Filled.AccountBalance">
+        <div class="d-flex justify-end my-3">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateAccountDialog">New Account</MudButton>
+        </div>
+        <MudTable Items="@_accounts" Dense="true" Hover="true" Loading="@_loadingAccounts" Elevation="1">
+            <HeaderContent>
+                <MudTh>Code</MudTh>
+                <MudTh>Name</MudTh>
+                <MudTh>Type</MudTh>
+                <MudTh>Normal Bal.</MudTh>
+                <MudTh Style="text-align:right">Opening</MudTh>
+                <MudTh Style="text-align:right">Debits</MudTh>
+                <MudTh Style="text-align:right">Credits</MudTh>
+                <MudTh Style="text-align:right">Balance</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Code</MudTd>
+                <MudTd>@context.Name</MudTd>
+                <MudTd>@context.Type</MudTd>
+                <MudTd>@context.NormalBalance</MudTd>
+                <MudTd Style="text-align:right">@context.OpeningBalance.ToString("N2")</MudTd>
+                <MudTd Style="text-align:right">@context.TotalDebits.ToString("N2")</MudTd>
+                <MudTd Style="text-align:right">@context.TotalCredits.ToString("N2")</MudTd>
+                <MudTd Style="text-align:right"><b>@context.Balance.ToString("N2")</b></MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Journal Entries" Icon="@Icons.Material.Filled.Article">
+        <div class="d-flex justify-end my-3">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateEntryDialog">New Entry</MudButton>
+        </div>
+        <MudTable Items="@_entries" Dense="true" Hover="true" Loading="@_loadingEntries" Elevation="1">
+            <HeaderContent>
+                <MudTh>ID</MudTh>
+                <MudTh>Date</MudTh>
+                <MudTh>Description</MudTh>
+                <MudTh Style="text-align:right">Total Debit</MudTh>
+                <MudTh Style="text-align:right">Total Credit</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Id</MudTd>
+                <MudTd>@context.Date.ToString("dd MMM yyyy")</MudTd>
+                <MudTd>@context.Description</MudTd>
+                <MudTd Style="text-align:right">@context.Lines.Sum(l => l.Debit).ToString("N2")</MudTd>
+                <MudTd Style="text-align:right">@context.Lines.Sum(l => l.Credit).ToString("N2")</MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                   OnClick="@(() => DeleteEntryAsync(context))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Summary" Icon="@Icons.Material.Filled.Summarize"
+                 OnClick="@(async () => { if (_summary is null) await LoadSummaryAsync(); })">
+        @if (_summary is not null)
+        {
+            <MudGrid Spacing="3" Class="mt-3">
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Class="pa-4" Elevation="2">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Total Assets</MudText>
+                        <MudText Typo="Typo.h6">@_summary.TotalAssets.ToString("N2")</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Class="pa-4" Elevation="2">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Total Liabilities</MudText>
+                        <MudText Typo="Typo.h6">@_summary.TotalLiabilities.ToString("N2")</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Class="pa-4" Elevation="2">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Net Worth</MudText>
+                        <MudText Typo="Typo.h6" Color="@(_summary.NetWorth >= 0 ? Color.Success : Color.Error)">
+                            @_summary.NetWorth.ToString("N2")
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Class="pa-4" Elevation="2">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Income</MudText>
+                        <MudText Typo="Typo.h6" Color="Color.Success">@_summary.TotalIncome.ToString("N2")</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Class="pa-4" Elevation="2">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Expenses</MudText>
+                        <MudText Typo="Typo.h6" Color="Color.Error">@_summary.TotalExpenses.ToString("N2")</MudText>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        }
+    </MudTabPanel>
+</MudTabs>
+
+<!-- Create Account Dialog -->
+<MudDialog @bind-Visible="_showAccountDialog">
+    <TitleContent><MudText Typo="Typo.h6">New Account</MudText></TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_accForm.Id" Label="ID (e.g. A1000)" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="_accForm.Code" Label="Code" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="_accForm.Name" Label="Name" Variant="Variant.Outlined" Class="mb-3" />
+        <MudSelect @bind-Value="_accForm.Type" Label="Type" Variant="Variant.Outlined" Class="mb-3">
+            @foreach (var t in new[] { "Asset", "Liability", "Equity", "Income", "Expense" })
+            { <MudSelectItem Value="@t">@t</MudSelectItem> }
+        </MudSelect>
+        <MudSelect @bind-Value="_accForm.NormalBalance" Label="Normal Balance" Variant="Variant.Outlined" Class="mb-3">
+            <MudSelectItem Value="@("Debit")">Debit</MudSelectItem>
+            <MudSelectItem Value="@("Credit")">Credit</MudSelectItem>
+        </MudSelect>
+        <MudNumericField @bind-Value="_accForm.OpeningBalance" Label="Opening Balance" Variant="Variant.Outlined" Format="F2" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showAccountDialog = false)">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAccountAsync">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<!-- Create Entry Dialog -->
+<MudDialog @bind-Visible="_showEntryDialog" Options="new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true }">
+    <TitleContent><MudText Typo="Typo.h6">New Journal Entry</MudText></TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_entryForm.Id" Label="Entry ID (e.g. JE001)" Variant="Variant.Outlined" Class="mb-3" />
+        <MudDatePicker @bind-Date="_entryForm.Date" Label="Date" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="_entryForm.Description" Label="Description" Variant="Variant.Outlined" Class="mb-3" />
+        <MudText Typo="Typo.subtitle2" Class="mb-2">Lines</MudText>
+        @foreach (var (line, i) in _entryForm.Lines.Select((l, i) => (l, i)))
+        {
+            <MudGrid Spacing="2" Class="mb-2">
+                <MudItem xs="4">
+                    <MudTextField @bind-Value="line.AccountId" Label="Account ID" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="3">
+                    <MudNumericField @bind-Value="line.Debit" Label="Debit" Variant="Variant.Outlined" Format="F2" />
+                </MudItem>
+                <MudItem xs="3">
+                    <MudNumericField @bind-Value="line.Credit" Label="Credit" Variant="Variant.Outlined" Format="F2" />
+                </MudItem>
+                <MudItem xs="2">
+                    <MudIconButton Icon="@Icons.Material.Filled.Remove" Color="Color.Error"
+                                   OnClick="@(() => _entryForm.Lines.RemoveAt(i))" />
+                </MudItem>
+            </MudGrid>
+        }
+        <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small"
+                   OnClick="@(() => _entryForm.Lines.Add(new()))">Add Line</MudButton>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showEntryDialog = false)">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveEntryAsync">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<LedgerAccountModel> _accounts = [];
+    private List<JournalEntryModel> _entries = [];
+    private LedgerSummaryModel? _summary;
+    private bool _loadingAccounts = true;
+    private bool _loadingEntries = true;
+    private bool _showAccountDialog;
+    private bool _showEntryDialog;
+    private AccountForm _accForm = new();
+    private EntryForm _entryForm = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var t1 = LoadAccountsAsync();
+        var t2 = LoadEntriesAsync();
+        await Task.WhenAll(t1, t2);
+    }
+
+    private async Task LoadAccountsAsync()
+    {
+        _loadingAccounts = true;
+        _accounts = await Api.GetAccountsAsync();
+        _loadingAccounts = false;
+    }
+
+    private async Task LoadEntriesAsync()
+    {
+        _loadingEntries = true;
+        _entries = await Api.GetEntriesAsync();
+        _loadingEntries = false;
+    }
+
+    private async Task LoadSummaryAsync()
+        => _summary = await Api.GetLedgerSummaryAsync();
+
+    private void OpenCreateAccountDialog() { _accForm = new(); _showAccountDialog = true; }
+    private void OpenCreateEntryDialog() { _entryForm = new(); _showEntryDialog = true; }
+
+    private async Task SaveAccountAsync()
+    {
+        try
+        {
+            await Api.CreateAccountAsync(new { id = _accForm.Id, code = _accForm.Code, name = _accForm.Name, type = _accForm.Type, normalBalance = _accForm.NormalBalance, openingBalance = _accForm.OpeningBalance });
+            _showAccountDialog = false;
+            Snackbar.Add("Account created", Severity.Success);
+            await LoadAccountsAsync();
+        }
+        catch { Snackbar.Add("Failed to create account", Severity.Error); }
+    }
+
+    private async Task SaveEntryAsync()
+    {
+        try
+        {
+            var date = _entryForm.Date.HasValue ? DateOnly.FromDateTime(_entryForm.Date.Value) : DateOnly.FromDateTime(DateTime.Today);
+            var lines = _entryForm.Lines.Select(l => new { accountId = l.AccountId, debit = l.Debit, credit = l.Credit }).ToList();
+            await Api.CreateJournalEntryAsync(new { id = _entryForm.Id, date, description = _entryForm.Description, lines });
+            _showEntryDialog = false;
+            Snackbar.Add("Entry created", Severity.Success);
+            await LoadEntriesAsync();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task DeleteEntryAsync(JournalEntryModel e)
+    {
+        try { await Api.DeleteJournalEntryAsync(e.Id); await LoadEntriesAsync(); }
+        catch { Snackbar.Add("Failed to delete", Severity.Error); }
+    }
+
+    private class AccountForm
+    {
+        public string Id { get; set; } = "";
+        public string Code { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Type { get; set; } = "Asset";
+        public string NormalBalance { get; set; } = "Debit";
+        public decimal OpeningBalance { get; set; }
+    }
+
+    private class EntryForm
+    {
+        public string Id { get; set; } = "";
+        public DateTime? Date { get; set; } = DateTime.Today;
+        public string Description { get; set; } = "";
+        public List<LineInput> Lines { get; set; } = [new(), new()];
+    }
+
+    private class LineInput
+    {
+        public string AccountId { get; set; } = "";
+        public decimal Debit { get; set; }
+        public decimal Credit { get; set; }
+    }
+}

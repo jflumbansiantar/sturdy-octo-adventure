@@ -1,0 +1,65 @@
+{
+  "Files": [
+    {
+      "Id": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Web\\bin\\Debug\\net8.0\\wwwroot\\_framework\\blazor.webassembly.js",
+      "PackagePath": "staticwebassets\\_framework\\blazor.webassembly.js"
+    },
+    {
+      "Id": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Web\\obj\\Debug\\net8.0\\compressed\\f9tjb8cmbo.gz",
+      "PackagePath": "staticwebassets\\_framework\\blazor.webassembly.js.gz"
+    },
+    {
+      "Id": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Web\\obj\\Debug\\net8.0\\scopedcss\\bundle\\PortfolioOS.Web.styles.css",
+      "PackagePath": "staticwebassets\\PortfolioOS.Web.styles.css"
+    },
+    {
+      "Id": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Web\\wwwroot\\appsettings.json",
+      "PackagePath": "staticwebassets\\appsettings.json"
+    },
+    {
+      "Id": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Web\\wwwroot\\css\\app.css",
+      "PackagePath": "staticwebassets\\css\\app.css"
+    },
+    {
+      "Id": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Web\\wwwroot\\css\\bootstrap\\bootstrap.min.css",
+      "PackagePath": "staticwebassets\\css\\bootstrap\\bootstrap.min.css"
+    },
+    {
+      "Id": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Web\\wwwroot\\css\\bootstrap\\bootstrap.min.css.map",
+      "PackagePath": "staticwebassets\\css\\bootstrap\\bootstrap.min.css.map"
+    },
+    {
+      "Id": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Web\\wwwroot\\favicon.png",
+      "PackagePath": "staticwebassets\\favicon.png"
+    },
+    {
+      "Id": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Web\\wwwroot\\icon-192.png",
+      "PackagePath": "staticwebassets\\icon-192.png"
+    },
+    {
+      "Id": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Web\\wwwroot\\index.html",
+      "PackagePath": "staticwebassets\\index.html"
+    },
+    {
+      "Id": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Web\\wwwroot\\sample-data\\weather.json",
+      "PackagePath": "staticwebassets\\sample-data\\weather.json"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.PortfolioOS.Web.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.PortfolioOS.Web.props",
+      "PackagePath": "build\\PortfolioOS.Web.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.PortfolioOS.Web.props",
+      "PackagePath": "buildMultiTargeting\\PortfolioOS.Web.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.PortfolioOS.Web.props",
+      "PackagePath": "buildTransitive\\PortfolioOS.Web.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

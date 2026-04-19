@@ -1,0 +1,143 @@
+@page "/"
+@inject PortfolioApiClient Api
+@inject AppState AppState
+
+<PageTitle>Dashboard – PortfolioOS</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Class="mb-4" />
+}
+
+@if (_summary is not null)
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Value</MudText>
+                <MudText Typo="Typo.h5">@AppState.FormatValue(_summary.TotalValue)</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Cost</MudText>
+                <MudText Typo="Typo.h5">@AppState.FormatValue(_summary.TotalCostBasis)</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Gain/Loss</MudText>
+                <MudText Typo="Typo.h5" Color="@GainColor(_summary.TotalGainLoss)">
+                    @AppState.FormatValue(_summary.TotalGainLoss) (@_summary.TotalGainLossPct.ToString("F2")%)
+                </MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Today's Gain/Loss</MudText>
+                <MudText Typo="Typo.h5" Color="@GainColor(_summary.TodayGainLoss)">
+                    @AppState.FormatValue(_summary.TodayGainLoss)
+                </MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="3">
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3">Top Movers</MudText>
+                <MudTable Items="@TopMovers" Dense="true" Hover="true" Elevation="0">
+                    <HeaderContent>
+                        <MudTh>Ticker</MudTh>
+                        <MudTh>Market</MudTh>
+                        <MudTh Style="text-align:right">Price</MudTh>
+                        <MudTh Style="text-align:right">Day Change</MudTh>
+                        <MudTh Style="text-align:right">Total Gain</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.Ticker</MudTd>
+                        <MudTd><MudChip T="string" Size="Size.Small">@context.Market</MudChip></MudTd>
+                        <MudTd Style="text-align:right">@context.CurrentPrice.ToString("F2")</MudTd>
+                        <MudTd Style="text-align:right">
+                            <MudText Color="@GainColor(context.DayChange)">
+                                @context.DayChangePct.ToString("F2")%
+                            </MudText>
+                        </MudTd>
+                        <MudTd Style="text-align:right">
+                            <MudText Color="@GainColor(context.GainLoss)">
+                                @AppState.FormatValue(context.GainLoss)
+                            </MudText>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3">By Market</MudText>
+                @foreach (var grp in ByMarket)
+                {
+                    <div class="d-flex justify-space-between mb-2">
+                        <MudText>@grp.Key (@grp.Count)</MudText>
+                        <MudText>@AppState.FormatValue(grp.Value)</MudText>
+                    </div>
+                    <MudProgressLinear Value="@(grp.Pct)" Color="Color.Primary" Class="mb-3" />
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+<MudPaper Class="pa-4 mt-4" Elevation="2">
+    <MudText Typo="Typo.h6" Class="mb-3">Recent Transactions</MudText>
+    <MudTable Items="@_transactions" Dense="true" Hover="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Date</MudTh>
+            <MudTh>Category</MudTh>
+            <MudTh>Name</MudTh>
+            <MudTh Style="text-align:right">Amount</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Date.ToString("dd MMM yyyy")</MudTd>
+            <MudTd>@context.Category</MudTd>
+            <MudTd>@context.Name</MudTd>
+            <MudTd Style="text-align:right">@AppState.FormatValue(context.Total)</MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private PortfolioSummaryModel? _summary;
+    private List<TransactionModel> _transactions = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var t1 = Api.GetPortfolioSummaryAsync();
+        var t2 = Api.GetTransactionsAsync();
+        await Task.WhenAll(t1, t2);
+        _summary = t1.Result;
+        _transactions = t2.Result.Take(5).ToList();
+        _loading = false;
+    }
+
+    private Color GainColor(decimal v) => v >= 0 ? Color.Success : Color.Error;
+
+    private IEnumerable<HoldingModel> TopMovers =>
+        _summary?.Holdings.OrderByDescending(h => Math.Abs(h.DayChangePct)).Take(5) ?? [];
+
+    private IEnumerable<(string Key, int Count, decimal Value, double Pct)> ByMarket
+    {
+        get
+        {
+            if (_summary is null) yield break;
+            var total = _summary.TotalValue;
+            foreach (var grp in _summary.Holdings.GroupBy(h => h.Market))
+            {
+                var val = grp.Sum(h => h.MarketValue);
+                yield return (grp.Key, grp.Count(), val, total > 0 ? (double)(val / total * 100) : 0);
+            }
+        }
+    }
+}

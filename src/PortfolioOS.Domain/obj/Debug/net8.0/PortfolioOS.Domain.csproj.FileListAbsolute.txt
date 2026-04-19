@@ -1,0 +1,35 @@
+C:\Users\jfran\Documents\My Web Sites\WebSite1\Mini Wealth Management\src\PortfolioOS.Domain\bin\Debug\net8.0\PortfolioOS.Domain.deps.json
+C:\Users\jfran\Documents\My Web Sites\WebSite1\Mini Wealth Management\src\PortfolioOS.Domain\bin\Debug\net8.0\PortfolioOS.Domain.dll
+C:\Users\jfran\Documents\My Web Sites\WebSite1\Mini Wealth Management\src\PortfolioOS.Domain\bin\Debug\net8.0\PortfolioOS.Domain.pdb
+C:\Users\jfran\Documents\My Web Sites\WebSite1\Mini Wealth Management\src\PortfolioOS.Domain\obj\Debug\net8.0\PortfolioOS.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\jfran\Documents\My Web Sites\WebSite1\Mini Wealth Management\src\PortfolioOS.Domain\obj\Debug\net8.0\PortfolioOS.Domain.AssemblyInfoInputs.cache
+C:\Users\jfran\Documents\My Web Sites\WebSite1\Mini Wealth Management\src\PortfolioOS.Domain\obj\Debug\net8.0\PortfolioOS.Domain.AssemblyInfo.cs
+C:\Users\jfran\Documents\My Web Sites\WebSite1\Mini Wealth Management\src\PortfolioOS.Domain\obj\Debug\net8.0\PortfolioOS.Domain.csproj.CoreCompileInputs.cache
+C:\Users\jfran\Documents\My Web Sites\WebSite1\Mini Wealth Management\src\PortfolioOS.Domain\obj\Debug\net8.0\PortfolioOS.Domain.sourcelink.json
+C:\Users\jfran\Documents\My Web Sites\WebSite1\Mini Wealth Management\src\PortfolioOS.Domain\obj\Debug\net8.0\PortfolioOS.Domain.dll
+C:\Users\jfran\Documents\My Web Sites\WebSite1\Mini Wealth Management\src\PortfolioOS.Domain\obj\Debug\net8.0\refint\PortfolioOS.Domain.dll
+C:\Users\jfran\Documents\My Web Sites\WebSite1\Mini Wealth Management\src\PortfolioOS.Domain\obj\Debug\net8.0\PortfolioOS.Domain.pdb
+C:\Users\jfran\Documents\My Web Sites\WebSite1\Mini Wealth Management\src\PortfolioOS.Domain\obj\Debug\net8.0\ref\PortfolioOS.Domain.dll
+C:\Users\jfran\Documents\My Web Sites\WebSite1\MiniWealthManagement\src\PortfolioOS.Domain\bin\Debug\net8.0\PortfolioOS.Domain.deps.json
+C:\Users\jfran\Documents\My Web Sites\WebSite1\MiniWealthManagement\src\PortfolioOS.Domain\bin\Debug\net8.0\PortfolioOS.Domain.dll
+C:\Users\jfran\Documents\My Web Sites\WebSite1\MiniWealthManagement\src\PortfolioOS.Domain\bin\Debug\net8.0\PortfolioOS.Domain.pdb
+C:\Users\jfran\Documents\My Web Sites\WebSite1\MiniWealthManagement\src\PortfolioOS.Domain\obj\Debug\net8.0\PortfolioOS.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\jfran\Documents\My Web Sites\WebSite1\MiniWealthManagement\src\PortfolioOS.Domain\obj\Debug\net8.0\PortfolioOS.Domain.AssemblyInfoInputs.cache
+C:\Users\jfran\Documents\My Web Sites\WebSite1\MiniWealthManagement\src\PortfolioOS.Domain\obj\Debug\net8.0\PortfolioOS.Domain.AssemblyInfo.cs
+C:\Users\jfran\Documents\My Web Sites\WebSite1\MiniWealthManagement\src\PortfolioOS.Domain\obj\Debug\net8.0\PortfolioOS.Domain.csproj.CoreCompileInputs.cache
+C:\Users\jfran\Documents\My Web Sites\WebSite1\MiniWealthManagement\src\PortfolioOS.Domain\obj\Debug\net8.0\PortfolioOS.Domain.sourcelink.json
+C:\Users\jfran\Documents\My Web Sites\WebSite1\MiniWealthManagement\src\PortfolioOS.Domain\obj\Debug\net8.0\PortfolioOS.Domain.dll
+C:\Users\jfran\Documents\My Web Sites\WebSite1\MiniWealthManagement\src\PortfolioOS.Domain\obj\Debug\net8.0\refint\PortfolioOS.Domain.dll
+C:\Users\jfran\Documents\My Web Sites\WebSite1\MiniWealthManagement\src\PortfolioOS.Domain\obj\Debug\net8.0\PortfolioOS.Domain.pdb
+C:\Users\jfran\Documents\My Web Sites\WebSite1\MiniWealthManagement\src\PortfolioOS.Domain\obj\Debug\net8.0\ref\PortfolioOS.Domain.dll
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Domain\obj\Debug\net8.0\PortfolioOS.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Domain\obj\Debug\net8.0\PortfolioOS.Domain.AssemblyInfoInputs.cache
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Domain\obj\Debug\net8.0\PortfolioOS.Domain.AssemblyInfo.cs
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Domain\obj\Debug\net8.0\PortfolioOS.Domain.csproj.CoreCompileInputs.cache
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Domain\obj\Debug\net8.0\PortfolioOS.Domain.dll
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Domain\obj\Debug\net8.0\refint\PortfolioOS.Domain.dll
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Domain\obj\Debug\net8.0\PortfolioOS.Domain.pdb
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Domain\bin\Debug\net8.0\PortfolioOS.Domain.deps.json
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Domain\bin\Debug\net8.0\PortfolioOS.Domain.dll
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Domain\bin\Debug\net8.0\PortfolioOS.Domain.pdb
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Domain\obj\Debug\net8.0\ref\PortfolioOS.Domain.dll
