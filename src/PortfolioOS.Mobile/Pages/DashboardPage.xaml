@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:PortfolioOS.Mobile.ViewModels"
+             xmlns:models="clr-namespace:PortfolioOS.Mobile.Models"
+             x:Class="PortfolioOS.Mobile.Pages.DashboardPage"
+             x:DataType="vm:DashboardViewModel"
+             Title="Dashboard"
+             BackgroundColor="#1A1A2E">
+
+    <RefreshView Command="{Binding LoadCommand}" IsRefreshing="{Binding IsLoading}">
+        <ScrollView>
+            <VerticalStackLayout Padding="16" Spacing="16">
+
+                <!-- Summary Cards -->
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
+                    <Frame Grid.Row="0" Grid.Column="0" BackgroundColor="#16213E" BorderColor="Transparent" CornerRadius="12" Padding="16">
+                        <VerticalStackLayout>
+                            <Label Text="Total Value" TextColor="#888" FontSize="12" />
+                            <Label Text="{Binding TotalValueFormatted}" TextColor="White" FontSize="20" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+                    </Frame>
+
+                    <Frame Grid.Row="0" Grid.Column="1" BackgroundColor="#16213E" BorderColor="Transparent" CornerRadius="12" Padding="16">
+                        <VerticalStackLayout>
+                            <Label Text="Today" TextColor="#888" FontSize="12" />
+                            <Label Text="{Binding TodayGainLossFormatted}"
+                                   TextColor="{Binding TodayGainLossColor}"
+                                   FontSize="18" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+                    </Frame>
+
+                    <Frame Grid.Row="1" Grid.ColumnSpan="2" BackgroundColor="#16213E" BorderColor="Transparent" CornerRadius="12" Padding="16">
+                        <VerticalStackLayout>
+                            <Label Text="Total Gain / Loss" TextColor="#888" FontSize="12" />
+                            <Label Text="{Binding TotalGainLossFormatted}"
+                                   TextColor="{Binding GainLossColor}"
+                                   FontSize="18" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+                    </Frame>
+                </Grid>
+
+                <!-- Error -->
+                <Label Text="{Binding ErrorMessage}" TextColor="#FF6B6B" IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}" />
+
+                <!-- Top Movers -->
+                <Label Text="Top Movers" TextColor="White" FontSize="16" FontAttributes="Bold" />
+                <CollectionView ItemsSource="{Binding TopMovers}" HeightRequest="220">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:HoldingModel">
+                            <Frame BackgroundColor="#16213E" BorderColor="Transparent" CornerRadius="10" Padding="12" Margin="0,0,0,8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <VerticalStackLayout Grid.Column="0">
+                                        <Label Text="{Binding Ticker}" TextColor="White" FontAttributes="Bold" FontSize="15" />
+                                        <Label Text="{Binding Name}" TextColor="#888" FontSize="12" />
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Column="1" HorizontalOptions="End">
+                                        <Label Text="{Binding CurrentPrice, StringFormat='${0:F2}'}" TextColor="White" FontSize="14" HorizontalTextAlignment="End" />
+                                        <Label TextColor="{Binding DayChangePct, Converter={StaticResource GainColorConverter}}"
+                                               FontSize="12" HorizontalTextAlignment="End">
+                                            <Label.Text>
+                                                <MultiBinding StringFormat="{}{0:F2}%">
+                                                    <Binding Path="DayChangePct" />
+                                                </MultiBinding>
+                                            </Label.Text>
+                                        </Label>
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Frame>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <!-- Recent Transactions -->
+                <Label Text="Recent Transactions" TextColor="White" FontSize="16" FontAttributes="Bold" />
+                <CollectionView ItemsSource="{Binding RecentTransactions}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:TransactionModel">
+                            <Frame BackgroundColor="#16213E" BorderColor="Transparent" CornerRadius="10" Padding="12" Margin="0,0,0,8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <VerticalStackLayout Grid.Column="0">
+                                        <Label Text="{Binding Name}" TextColor="White" FontSize="14" />
+                                        <Label Text="{Binding Category}" TextColor="#888" FontSize="12" />
+                                    </VerticalStackLayout>
+                                    <Label Grid.Column="1"
+                                           Text="{Binding Total, StringFormat='${0:N2}'}"
+                                           TextColor="White" FontSize="14"
+                                           VerticalOptions="Center" />
+                                </Grid>
+                            </Frame>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+
+</ContentPage>

@@ -1,9 +1,11 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using PortfolioOS.API.Middleware;
 using PortfolioOS.Application;
 using PortfolioOS.Infrastructure;
+using PortfolioOS.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,6 +70,14 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
 builder.Services.AddHttpClient();
 
 var app = builder.Build();
+
+// Apply pending migrations and seed initial data
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await db.Database.MigrateAsync();
+    await DataSeeder.SeedAsync(db);
+}
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 

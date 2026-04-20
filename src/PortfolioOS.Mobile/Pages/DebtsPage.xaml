@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:PortfolioOS.Mobile.ViewModels"
+             xmlns:models="clr-namespace:PortfolioOS.Mobile.Models"
+             x:Class="PortfolioOS.Mobile.Pages.DebtsPage"
+             x:DataType="vm:DebtsViewModel"
+             Title="Debts"
+             BackgroundColor="#1A1A2E">
+
+    <RefreshView Command="{Binding LoadCommand}" IsRefreshing="{Binding IsLoading}">
+        <ScrollView>
+            <VerticalStackLayout Padding="16" Spacing="16">
+
+                <!-- Summary -->
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <Frame Grid.Column="0" BackgroundColor="#16213E" BorderColor="Transparent" CornerRadius="12" Padding="16">
+                        <VerticalStackLayout>
+                            <Label Text="Outstanding" TextColor="#888" FontSize="12" />
+                            <Label Text="{Binding TotalOutstandingFormatted}" TextColor="#F44336" FontSize="18" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+                    </Frame>
+                    <Frame Grid.Column="1" BackgroundColor="#16213E" BorderColor="Transparent" CornerRadius="12" Padding="16">
+                        <VerticalStackLayout>
+                            <Label Text="Monthly Min." TextColor="#888" FontSize="12" />
+                            <Label Text="{Binding MonthlyMinimumFormatted}" TextColor="White" FontSize="18" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+                    </Frame>
+                </Grid>
+
+                <Label Text="{Binding ErrorMessage}" TextColor="#FF6B6B"
+                       IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}" />
+
+                <!-- Debt list -->
+                <CollectionView ItemsSource="{Binding Debts}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:DebtModel">
+                            <Frame BackgroundColor="#16213E" BorderColor="Transparent" CornerRadius="12" Padding="16" Margin="0,0,0,10">
+                                <VerticalStackLayout Spacing="8">
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Grid.Column="0" Text="{Binding Name}"
+                                               TextColor="White" FontSize="16" FontAttributes="Bold" />
+                                        <Frame Grid.Column="1" BackgroundColor="#0F3460" BorderColor="Transparent"
+                                               CornerRadius="6" Padding="6,3">
+                                            <Label Text="{Binding Status}" FontSize="11"
+                                                   TextColor="{Binding Status, Converter={StaticResource DebtStatusColorConverter}}" />
+                                        </Frame>
+                                    </Grid>
+
+                                    <Label Text="{Binding Type}" TextColor="#888" FontSize="12" />
+
+                                    <!-- Progress bar: paid vs original -->
+                                    <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                                        <ProgressBar Grid.Column="0"
+                                                     Progress="{Binding TotalPaid, Converter={StaticResource DebtProgressConverter}}"
+                                                     ProgressColor="#4CAF50"
+                                                     BackgroundColor="#333"
+                                                     VerticalOptions="Center" />
+                                        <Label Grid.Column="1" TextColor="#888" FontSize="11" Margin="8,0,0,0">
+                                            <Label.Text>
+                                                <MultiBinding StringFormat="{}Paid ${0:N0}">
+                                                    <Binding Path="TotalPaid" />
+                                                </MultiBinding>
+                                            </Label.Text>
+                                        </Label>
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="*,*,*">
+                                        <VerticalStackLayout Grid.Column="0">
+                                            <Label Text="Balance" TextColor="#555" FontSize="10" />
+                                            <Label Text="{Binding Balance, StringFormat='${0:N0}'}" TextColor="#F44336" FontSize="13" FontAttributes="Bold" />
+                                        </VerticalStackLayout>
+                                        <VerticalStackLayout Grid.Column="1">
+                                            <Label Text="Rate" TextColor="#555" FontSize="10" />
+                                            <Label Text="{Binding InterestRate, StringFormat='{0:F2}%'}" TextColor="#CCC" FontSize="13" />
+                                        </VerticalStackLayout>
+                                        <VerticalStackLayout Grid.Column="2">
+                                            <Label Text="Min. Payment" TextColor="#555" FontSize="10" />
+                                            <Label Text="{Binding MinimumPayment, StringFormat='${0:N0}'}" TextColor="#CCC" FontSize="13" />
+                                        </VerticalStackLayout>
+                                    </Grid>
+
+                                </VerticalStackLayout>
+                            </Frame>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                    <CollectionView.EmptyView>
+                        <Label Text="No debts recorded." TextColor="#888" HorizontalTextAlignment="Center" Margin="0,32,0,0" />
+                    </CollectionView.EmptyView>
+                </CollectionView>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+
+</ContentPage>

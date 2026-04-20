@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+       xmlns:pages="clr-namespace:PortfolioOS.Mobile.Pages"
+       x:Class="PortfolioOS.Mobile.AppShell"
+       Shell.NavBarBackgroundColor="#16213E"
+       Shell.NavBarHasShadow="False"
+       Shell.TitleColor="White"
+       Shell.TabBarBackgroundColor="#16213E"
+       Shell.TabBarTitleColor="White"
+       Shell.TabBarUnselectedColor="#666">
+
+    <!-- Login (no tab bar) -->
+    <ShellContent Route="login"
+                  Shell.FlyoutBehavior="Disabled"
+                  ContentTemplate="{DataTemplate pages:LoginPage}" />
+
+    <!-- Main tab bar -->
+    <TabBar Route="main">
+        <ShellContent Route="dashboard"
+                      Title="Dashboard"
+                      Shell.TabBarIcon="chart_bar.png"
+                      ContentTemplate="{DataTemplate pages:DashboardPage}" />
+        <ShellContent Route="holdings"
+                      Title="Holdings"
+                      Shell.TabBarIcon="trending_up.png"
+                      ContentTemplate="{DataTemplate pages:HoldingsPage}" />
+        <ShellContent Route="transactions"
+                      Title="Transactions"
+                      Shell.TabBarIcon="receipt.png"
+                      ContentTemplate="{DataTemplate pages:TransactionsPage}" />
+        <ShellContent Route="debts"
+                      Title="Debts"
+                      Shell.TabBarIcon="credit_card.png"
+                      ContentTemplate="{DataTemplate pages:DebtsPage}" />
+    </TabBar>
+
+</Shell>

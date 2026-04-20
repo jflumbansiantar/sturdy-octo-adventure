@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:converters="clr-namespace:PortfolioOS.Mobile.Converters"
+             x:Class="PortfolioOS.Mobile.App">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
+                <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <converters:StringNotEmptyConverter x:Key="StringNotEmptyConverter" />
+            <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
+            <converters:GainColorConverter x:Key="GainColorConverter" />
+            <converters:DebtStatusColorConverter x:Key="DebtStatusColorConverter" />
+            <converters:DebtProgressConverter x:Key="DebtProgressConverter" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

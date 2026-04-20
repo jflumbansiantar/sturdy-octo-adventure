@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:PortfolioOS.Mobile.ViewModels"
+             x:Class="PortfolioOS.Mobile.Pages.LoginPage"
+             x:DataType="vm:LoginViewModel"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#1A1A2E">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="32" Spacing="0" VerticalOptions="Center">
+
+            <Label Text="PortfolioOS"
+                   FontSize="32" FontAttributes="Bold"
+                   TextColor="White"
+                   HorizontalTextAlignment="Center"
+                   Margin="0,0,0,8" />
+
+            <Label Text="Wealth Management"
+                   FontSize="14" TextColor="#888"
+                   HorizontalTextAlignment="Center"
+                   Margin="0,0,0,48" />
+
+            <Frame BackgroundColor="#16213E" BorderColor="Transparent" CornerRadius="12" Padding="24">
+                <VerticalStackLayout Spacing="16">
+
+                    <Label Text="Username" TextColor="#AAA" FontSize="13" />
+                    <Entry Placeholder="Enter username"
+                           Text="{Binding Username}"
+                           PlaceholderColor="#555"
+                           TextColor="White"
+                           BackgroundColor="#0F3460"
+                           HeightRequest="48" />
+
+                    <Label Text="Password" TextColor="#AAA" FontSize="13" />
+                    <Entry Placeholder="Enter password"
+                           Text="{Binding Password}"
+                           IsPassword="True"
+                           PlaceholderColor="#555"
+                           TextColor="White"
+                           BackgroundColor="#0F3460"
+                           HeightRequest="48" />
+
+                    <Label Text="{Binding ErrorMessage}"
+                           TextColor="#FF6B6B"
+                           FontSize="13"
+                           IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}" />
+
+                    <Button Text="Sign In"
+                            Command="{Binding LoginCommand}"
+                            IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}"
+                            BackgroundColor="#E94560"
+                            TextColor="White"
+                            CornerRadius="8"
+                            HeightRequest="48"
+                            Margin="0,8,0,0" />
+
+                    <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                       IsVisible="{Binding IsBusy}"
+                                       Color="#E94560"
+                                       HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
