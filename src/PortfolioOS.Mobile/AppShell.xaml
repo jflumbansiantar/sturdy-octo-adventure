@@ -17,20 +17,16 @@
 
     <!-- Main tab bar -->
     <TabBar Route="main">
-        <ShellContent Route="dashboard"
-                      Title="Dashboard"
-                      Shell.TabBarIcon="chart_bar.png"
-                      ContentTemplate="{DataTemplate pages:DashboardPage}" />
         <ShellContent Route="holdings"
-                      Title="Holdings"
+                      Title="Holding"
                       Shell.TabBarIcon="trending_up.png"
                       ContentTemplate="{DataTemplate pages:HoldingsPage}" />
         <ShellContent Route="transactions"
-                      Title="Transactions"
+                      Title="Transaction"
                       Shell.TabBarIcon="receipt.png"
                       ContentTemplate="{DataTemplate pages:TransactionsPage}" />
         <ShellContent Route="debts"
-                      Title="Debts"
+                      Title="Debt"
                       Shell.TabBarIcon="credit_card.png"
                       ContentTemplate="{DataTemplate pages:DebtsPage}" />
     </TabBar>

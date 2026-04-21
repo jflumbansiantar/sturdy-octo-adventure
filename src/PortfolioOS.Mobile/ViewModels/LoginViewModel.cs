@@ -42,7 +42,7 @@ public partial class LoginViewModel : ObservableObject
             }
 
             _auth.SetToken(result.Token);
-            await Shell.Current.GoToAsync("//dashboard");
+            await Shell.Current.GoToAsync("//holdings");
         }
         catch
         {

@@ -55,9 +55,23 @@ public class ApiClient
         resp.EnsureSuccessStatusCode();
     }
 
+    public async Task CreateHoldingAsync(object body)
+    {
+        Prepare();
+        var resp = await _http.PostAsJsonAsync("api/holdings", body);
+        resp.EnsureSuccessStatusCode();
+    }
+
     public async Task<List<DebtModel>> GetDebtsAsync()
     {
         Prepare();
         return await _http.GetFromJsonAsync<List<DebtModel>>("api/debts") ?? [];
+    }
+
+    public async Task CreateDebtAsync(object body)
+    {
+        Prepare();
+        var resp = await _http.PostAsJsonAsync("api/debts", body);
+        resp.EnsureSuccessStatusCode();
     }
 }

@@ -1,6 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using PortfolioOS.Mobile.Models;
 using PortfolioOS.Mobile.Services;
 
 namespace PortfolioOS.Mobile.ViewModels;
@@ -11,37 +10,65 @@ public partial class DebtsViewModel : ObservableObject
 
     public DebtsViewModel(ApiClient api) => _api = api;
 
-    [ObservableProperty] private bool _isLoading;
-    [ObservableProperty] private List<DebtModel> _debts = [];
     [ObservableProperty] private string _errorMessage = string.Empty;
+    [ObservableProperty] private string _successMessage = string.Empty;
+    [ObservableProperty] private bool _isSaving;
 
-    public decimal TotalOutstanding => Debts.Sum(d => d.Balance);
-    public decimal TotalPaid => Debts.Sum(d => d.TotalPaid);
-    public decimal MonthlyMinimum => Debts.Where(d => d.Status == "Active").Sum(d => d.MinimumPayment);
-    public string TotalOutstandingFormatted => $"${TotalOutstanding:N2}";
-    public string MonthlyMinimumFormatted => $"${MonthlyMinimum:N2}";
+    [ObservableProperty] private string _formName = string.Empty;
+    [ObservableProperty] private string _formType = "CreditCard";
+    [ObservableProperty] private decimal _formBalance;
+    [ObservableProperty] private decimal _formInterestRate;
+    [ObservableProperty] private decimal _formMinimumPayment;
+    [ObservableProperty] private int _formDueDay = 1;
+    [ObservableProperty] private string _formCurrency = "USD";
+    [ObservableProperty] private string _formDebtApp = string.Empty;
+    [ObservableProperty] private string _formNotes = string.Empty;
+
+    public string[] Types { get; } = ["CreditCard", "PersonalLoan", "Mortgage", "AutoLoan", "StudentLoan", "Other"];
+    public string[] Currencies { get; } = ["USD", "IDR"];
 
     [RelayCommand]
-    public async Task LoadAsync()
+    private async Task SaveAsync()
     {
-        IsLoading = true;
+        if (string.IsNullOrWhiteSpace(FormName))
+        {
+            ErrorMessage = "Name is required.";
+            return;
+        }
+
+        IsSaving = true;
         ErrorMessage = string.Empty;
+        SuccessMessage = string.Empty;
         try
         {
-            Debts = await _api.GetDebtsAsync();
-            OnPropertyChanged(nameof(TotalOutstanding));
-            OnPropertyChanged(nameof(TotalPaid));
-            OnPropertyChanged(nameof(MonthlyMinimum));
-            OnPropertyChanged(nameof(TotalOutstandingFormatted));
-            OnPropertyChanged(nameof(MonthlyMinimumFormatted));
+            await _api.CreateDebtAsync(new
+            {
+                name = FormName,
+                type = FormType,
+                balance = FormBalance,
+                interestRate = FormInterestRate,
+                minimumPayment = FormMinimumPayment,
+                dueDay = FormDueDay,
+                currency = FormCurrency,
+                debtApp = FormDebtApp,
+                notes = FormNotes
+            });
+            SuccessMessage = $"{FormName} added!";
+            FormName = string.Empty;
+            FormBalance = 0;
+            FormInterestRate = 0;
+            FormMinimumPayment = 0;
+            FormDueDay = 1;
+            FormDebtApp = string.Empty;
+            FormNotes = string.Empty;
         }
         catch
         {
-            ErrorMessage = "Failed to load debts.";
+            ErrorMessage = "Failed to save debt.";
         }
         finally
         {
-            IsLoading = false;
+            IsSaving = false;
         }
     }
 }
