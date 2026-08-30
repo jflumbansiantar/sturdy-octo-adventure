@@ -1,7 +1,9 @@
 using Microsoft.Extensions.Logging;
 using PortfolioOS.Mobile.Pages;
 using PortfolioOS.Mobile.Services;
+using PortfolioOS.Mobile.Services.Ocr;
 using PortfolioOS.Mobile.ViewModels;
+using PortfolioOS.Shared.Scanning;
 
 namespace PortfolioOS.Mobile;
 
@@ -30,11 +32,17 @@ public static class MauiProgram
         { BaseAddress = new Uri(apiBase) });
         builder.Services.AddSingleton<ApiClient>();
 
+        // Document scanning. OcrService resolves to the Android or iOS implementation in
+        // Platforms/; ReceiptScanner is the platform-neutral parsing engine from Shared.
+        builder.Services.AddSingleton<IOcrService, OcrService>();
+        builder.Services.AddSingleton<ReceiptScanner>();
+
         // ViewModels
         builder.Services.AddTransient<LoginViewModel>();
         builder.Services.AddTransient<DashboardViewModel>();
         builder.Services.AddTransient<HoldingsViewModel>();
         builder.Services.AddTransient<TransactionsViewModel>();
+        builder.Services.AddTransient<ScanReviewViewModel>();
         builder.Services.AddTransient<DebtsViewModel>();
 
         // Pages
@@ -42,6 +50,7 @@ public static class MauiProgram
         builder.Services.AddTransient<DashboardPage>();
         builder.Services.AddTransient<HoldingsPage>();
         builder.Services.AddTransient<TransactionsPage>();
+        builder.Services.AddTransient<ScanReviewPage>();
         builder.Services.AddTransient<DebtsPage>();
 
 #if DEBUG

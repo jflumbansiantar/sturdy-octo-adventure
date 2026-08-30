@@ -34,3 +34,7 @@ C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Share
 C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Shared\bin\Debug\net8.0\PortfolioOS.Shared.pdb
 C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Shared\obj\Debug\net8.0\ref\PortfolioOS.Shared.dll
 C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Shared\obj\Debug\net8.0\PortfolioOS.Shared.sourcelink.json
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Shared\bin\Debug\net8.0\PortfolioOS.Domain.dll
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Shared\bin\Debug\net8.0\PortfolioOS.Domain.pdb
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Shared\obj\Debug\net8.0\PortfolioOS.Shared.csproj.AssemblyReference.cache
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Shared\obj\Debug\net8.0\Portfoli.46291052.Up2Date

@@ -53,6 +53,12 @@ build_metadata.AdditionalFiles.ManifestResourceName = PortfolioOS.Mobile.Pages.L
 build_metadata.AdditionalFiles.TargetPath = Pages\LoginPage.xaml
 build_metadata.AdditionalFiles.RelativePath = Pages\LoginPage.xaml
 
+[C:/Users/jfran/Documents/My Web Sites/MiniWealthManagement/src/PortfolioOS.Mobile/Pages/ScanReviewPage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = PortfolioOS.Mobile.Pages.ScanReviewPage.xaml
+build_metadata.AdditionalFiles.TargetPath = Pages\ScanReviewPage.xaml
+build_metadata.AdditionalFiles.RelativePath = Pages\ScanReviewPage.xaml
+
 [C:/Users/jfran/Documents/My Web Sites/MiniWealthManagement/src/PortfolioOS.Mobile/Pages/TransactionsPage.xaml]
 build_metadata.AdditionalFiles.GenKind = Xaml
 build_metadata.AdditionalFiles.ManifestResourceName = PortfolioOS.Mobile.Pages.TransactionsPage.xaml

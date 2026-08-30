@@ -3166,3 +3166,12 @@ C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Web\o
 C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Web\obj\Debug\net8.0\Portfoli.C76F1905.Up2Date
 C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Web\obj\Debug\net8.0\ref\PortfolioOS.Web.dll
 C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Web\obj\Debug\net8.0\PortfolioOS.Web.sourcelink.json
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Web\bin\Debug\net8.0\wwwroot\_framework\PortfolioOS.Domain.pdb
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Web\bin\Debug\net8.0\wwwroot\_framework\PortfolioOS.Domain.wasm
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Web\bin\Debug\net8.0\wwwroot\_framework\PortfolioOS.Domain.wasm.gz
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Web\bin\Debug\net8.0\wwwroot\_framework\PortfolioOS.Domain.pdb.gz
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Web\bin\Debug\net8.0\PortfolioOS.Domain.dll
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Web\bin\Debug\net8.0\PortfolioOS.Domain.pdb
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Web\obj\Debug\net8.0\webcil\PortfolioOS.Domain.wasm
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Web\obj\Debug\net8.0\compressed\hwzbazlwyc.gz
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Web\obj\Debug\net8.0\compressed\l8mv355cok.gz

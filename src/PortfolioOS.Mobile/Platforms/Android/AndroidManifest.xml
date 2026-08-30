@@ -1,6 +1,15 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 	<application android:usesCleartextTraffic="true" android:allowBackup="true" android:icon="@mipmap/appicon" android:roundIcon="@mipmap/appicon_round" android:supportsRtl="true"></application>
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 	<uses-permission android:name="android.permission.INTERNET" />
+
+	<!-- Memotret struk / dokumen untuk diisikan otomatis ke form transaksi. -->
+	<uses-permission android:name="android.permission.CAMERA" />
+	<!-- Android 13+ memakai Photo Picker yang tidak butuh izin; izin ini hanya untuk API <= 32. -->
+	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+
+	<!-- required="false" supaya aplikasi tetap bisa dipasang di perangkat tanpa kamera;
+	     alur pilih-dari-galeri tetap jalan di situ. -->
+	<uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>

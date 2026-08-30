@@ -1,3 +1,4 @@
+using PortfolioOS.Mobile.Pages;
 using PortfolioOS.Mobile.Services;
 
 namespace PortfolioOS.Mobile;
@@ -10,6 +11,10 @@ public partial class AppShell : Shell
     {
         InitializeComponent();
         _auth = auth;
+
+        // Pushed on top of the tab bar rather than being a tab of its own, so it needs an
+        // explicit route registration.
+        Routing.RegisterRoute(nameof(ScanReviewPage), typeof(ScanReviewPage));
     }
 
     protected override async void OnAppearing()

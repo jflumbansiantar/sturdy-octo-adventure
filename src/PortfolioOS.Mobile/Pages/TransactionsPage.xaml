@@ -13,6 +13,19 @@
 
             <Label Text="New Transaction" TextColor="White" FontSize="18" FontAttributes="Bold" Margin="0,8,0,4" />
 
+            <!-- Scan fills the form from a photo; the manual fields below stay the fallback. -->
+            <Button Text="📷 Scan Dokumen" Command="{Binding ScanCommand}"
+                    IsEnabled="{Binding IsScanning, Converter={StaticResource InverseBoolConverter}}"
+                    BackgroundColor="#0F3460" TextColor="White" CornerRadius="8"
+                    BorderColor="#E94560" BorderWidth="1" HeightRequest="48" />
+
+            <Grid IsVisible="{Binding IsScanning}" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                <ActivityIndicator Grid.Column="0" IsRunning="{Binding IsScanning}"
+                                   Color="#E94560" HeightRequest="16" WidthRequest="16" />
+                <Label Grid.Column="1" Text="Membaca teks dari gambar..." TextColor="#888" FontSize="12"
+                       VerticalOptions="Center" />
+            </Grid>
+
             <Entry Placeholder="Name / Description" Text="{Binding FormName}"
                    PlaceholderColor="#555" TextColor="White" BackgroundColor="#0F3460" HeightRequest="44" />
 
@@ -23,9 +36,28 @@
             <Entry Placeholder="Type (e.g. Credit, Debit)" Text="{Binding FormType}"
                    PlaceholderColor="#555" TextColor="White" BackgroundColor="#0F3460" HeightRequest="44" />
 
-            <Entry Placeholder="Amount (USD)" Text="{Binding FormTotal}"
+            <Entry Placeholder="Amount" Text="{Binding FormTotal}"
                    Keyboard="Numeric"
                    PlaceholderColor="#555" TextColor="White" BackgroundColor="#0F3460" HeightRequest="44" />
+
+            <Label Text="Tanggal" TextColor="#AAA" FontSize="12" />
+            <DatePicker Date="{Binding FormDate}" Format="dd MMM yyyy"
+                        TextColor="White" BackgroundColor="#0F3460" />
+
+            <!-- Wajib untuk kategori Stock: tanpa ketiganya API menolak transaksinya. -->
+            <VerticalStackLayout IsVisible="{Binding IsFormStock}" Spacing="12">
+                <Label Text="Detail saham - wajib diisi" TextColor="#E94560" FontSize="12" FontAttributes="Bold" />
+
+                <Picker Title="Market" SelectedItem="{Binding FormMarket}"
+                        ItemsSource="{Binding Markets}"
+                        TextColor="White" BackgroundColor="#0F3460" />
+
+                <Entry Placeholder="Jumlah lembar" Text="{Binding FormShares}" Keyboard="Numeric"
+                       PlaceholderColor="#555" TextColor="White" BackgroundColor="#0F3460" HeightRequest="44" />
+
+                <Entry Placeholder="Harga per lembar" Text="{Binding FormPrice}" Keyboard="Numeric"
+                       PlaceholderColor="#555" TextColor="White" BackgroundColor="#0F3460" HeightRequest="44" />
+            </VerticalStackLayout>
 
             <Label Text="{Binding ErrorMessage}" TextColor="#FF6B6B" FontSize="12"
                    IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}" />

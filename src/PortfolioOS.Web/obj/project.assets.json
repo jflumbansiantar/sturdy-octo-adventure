@@ -549,9 +549,22 @@
           "buildTransitive/net6.0/System.Text.Json.targets": {}
         }
       },
+      "PortfolioOS.Domain/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "compile": {
+          "bin/placeholder/PortfolioOS.Domain.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/PortfolioOS.Domain.dll": {}
+        }
+      },
       "PortfolioOS.Shared/1.0.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "PortfolioOS.Domain": "1.0.0"
+        },
         "compile": {
           "bin/placeholder/PortfolioOS.Shared.dll": {}
         },
@@ -1102,9 +1115,22 @@
           "buildTransitive/net6.0/System.Text.Json.targets": {}
         }
       },
+      "PortfolioOS.Domain/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "compile": {
+          "bin/placeholder/PortfolioOS.Domain.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/PortfolioOS.Domain.dll": {}
+        }
+      },
       "PortfolioOS.Shared/1.0.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "PortfolioOS.Domain": "1.0.0"
+        },
         "compile": {
           "bin/placeholder/PortfolioOS.Shared.dll": {}
         },
@@ -2220,6 +2246,11 @@
         "system.text.json.nuspec",
         "useSharedDesignerContext.txt"
       ]
+    },
+    "PortfolioOS.Domain/1.0.0": {
+      "type": "project",
+      "path": "../PortfolioOS.Domain/PortfolioOS.Domain.csproj",
+      "msbuildProject": "../PortfolioOS.Domain/PortfolioOS.Domain.csproj"
     },
     "PortfolioOS.Shared/1.0.0": {
       "type": "project",

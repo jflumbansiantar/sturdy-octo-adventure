@@ -26,6 +26,10 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Kamera dipakai untuk memotret struk atau dokumen transaksi. Gambar diproses di perangkat ini dan tidak dikirim ke mana pun.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Akses galeri dipakai untuk memilih foto struk atau screenshot transaksi. Gambar diproses di perangkat ini dan tidak dikirim ke mana pun.</string>
 	<key>XSAppIconAssets</key>
 	<string>Assets.xcassets/appicon.appiconset</string>
 </dict>

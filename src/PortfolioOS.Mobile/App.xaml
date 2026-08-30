@@ -17,6 +17,8 @@
             <converters:ZeroToTrueConverter x:Key="ZeroToTrueConverter" />
             <converters:MoneyConverter x:Key="MoneyConverter" />
             <converters:DebtProgressConverter x:Key="DebtProgressConverter" />
+            <converters:ConfidenceColorConverter x:Key="ConfidenceColorConverter" />
+            <converters:ConfidenceTextConverter x:Key="ConfidenceTextConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -340,7 +340,11 @@
         "frameworks": {
           "net8.0": {
             "targetAlias": "net8.0",
-            "projectReferences": {}
+            "projectReferences": {
+              "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Domain\\PortfolioOS.Domain.csproj": {
+                "projectPath": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Domain\\PortfolioOS.Domain.csproj"
+              }
+            }
           }
         },
         "warningProperties": {

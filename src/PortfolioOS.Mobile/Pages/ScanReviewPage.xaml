@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:PortfolioOS.Mobile.ViewModels"
+             x:Class="PortfolioOS.Mobile.Pages.ScanReviewPage"
+             x:DataType="vm:ScanReviewViewModel"
+             Title="Periksa Hasil Scan"
+             BackgroundColor="#1A1A2E">
+
+    <ContentPage.Resources>
+        <!-- Label + confidence dot + plain-language note, repeated above every field. -->
+        <Style x:Key="FieldLabel" TargetType="Label">
+            <Setter Property="TextColor" Value="#AAA" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+        <Style x:Key="FieldEntry" TargetType="Entry">
+            <Setter Property="TextColor" Value="White" />
+            <Setter Property="PlaceholderColor" Value="#555" />
+            <Setter Property="BackgroundColor" Value="#0F3460" />
+            <Setter Property="HeightRequest" Value="44" />
+        </Style>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="10">
+
+            <Label Text="{Binding DocumentLabel}" TextColor="White" FontSize="18" FontAttributes="Bold" />
+            <Label Text="Hasil scan belum tersimpan. Periksa setiap isian sebelum menyimpan."
+                   TextColor="#888" FontSize="12" Margin="0,0,0,4" />
+
+            <!-- Warnings from the parser: everything it was unsure about, in one place. -->
+            <Frame IsVisible="{Binding HasWarnings}" BackgroundColor="#3A2A15" BorderColor="#FF9800"
+                   CornerRadius="8" Padding="12" Margin="0,4">
+                <VerticalStackLayout Spacing="4" BindableLayout.ItemsSource="{Binding Warnings}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <Label Text="{Binding .}" TextColor="#FFCC80" FontSize="12" />
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Tanggal -->
+            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="6" Margin="0,6,0,0">
+                <Label Grid.Column="0" Text="Tanggal" Style="{StaticResource FieldLabel}" />
+                <Label Grid.Column="1" Text="●" FontSize="12"
+                       TextColor="{Binding DateConfidence, Converter={StaticResource ConfidenceColorConverter}}" />
+                <Label Grid.Column="2" FontSize="11" TextColor="#777"
+                       Text="{Binding DateConfidence, Converter={StaticResource ConfidenceTextConverter}}" />
+            </Grid>
+            <DatePicker Date="{Binding Date}" Format="dd MMM yyyy"
+                        TextColor="White" BackgroundColor="#0F3460" />
+
+            <!-- Kategori -->
+            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="6" Margin="0,6,0,0">
+                <Label Grid.Column="0" Text="Kategori" Style="{StaticResource FieldLabel}" />
+                <Label Grid.Column="1" Text="●" FontSize="12"
+                       TextColor="{Binding CategoryConfidence, Converter={StaticResource ConfidenceColorConverter}}" />
+                <Label Grid.Column="2" FontSize="11" TextColor="#777"
+                       Text="{Binding CategoryConfidence, Converter={StaticResource ConfidenceTextConverter}}" />
+            </Grid>
+            <Picker ItemsSource="{Binding Categories}" SelectedItem="{Binding Category}"
+                    TextColor="White" BackgroundColor="#0F3460" />
+
+            <!-- Nama / deskripsi -->
+            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="6" Margin="0,6,0,0">
+                <Label Grid.Column="0" Text="Nama / Deskripsi" Style="{StaticResource FieldLabel}" />
+                <Label Grid.Column="1" Text="●" FontSize="12"
+                       TextColor="{Binding NameConfidence, Converter={StaticResource ConfidenceColorConverter}}" />
+                <Label Grid.Column="2" FontSize="11" TextColor="#777"
+                       Text="{Binding NameConfidence, Converter={StaticResource ConfidenceTextConverter}}" />
+            </Grid>
+            <Entry Text="{Binding Name}" Placeholder="Nama merchant / penerima / kode saham"
+                   Style="{StaticResource FieldEntry}" />
+
+            <Label Text="Tipe" Style="{StaticResource FieldLabel}" Margin="0,6,0,0" />
+            <Entry Text="{Binding Type}" Placeholder="Credit / Debit / BUY / SELL"
+                   Style="{StaticResource FieldEntry}" />
+
+            <!-- Nominal -->
+            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="6" Margin="0,6,0,0">
+                <Label Grid.Column="0" Text="Nominal" Style="{StaticResource FieldLabel}" />
+                <Label Grid.Column="1" Text="●" FontSize="12"
+                       TextColor="{Binding TotalConfidence, Converter={StaticResource ConfidenceColorConverter}}" />
+                <Label Grid.Column="2" FontSize="11" TextColor="#777"
+                       Text="{Binding TotalConfidence, Converter={StaticResource ConfidenceTextConverter}}" />
+            </Grid>
+            <Entry Text="{Binding Total}" Keyboard="Numeric" Style="{StaticResource FieldEntry}" />
+
+            <!-- Saham saja: wajib lengkap sebelum bisa disimpan -->
+            <VerticalStackLayout IsVisible="{Binding IsStock}" Spacing="10" Margin="0,8,0,0">
+                <BoxView HeightRequest="1" Color="#2A2A45" />
+                <Label Text="Detail saham - ketiganya wajib terisi"
+                       TextColor="#E94560" FontSize="12" FontAttributes="Bold" />
+
+                <Label Text="Market" Style="{StaticResource FieldLabel}" />
+                <Picker ItemsSource="{Binding Markets}" SelectedItem="{Binding Market}"
+                        TextColor="White" BackgroundColor="#0F3460" />
+
+                <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="6">
+                    <Label Grid.Column="0" Text="Jumlah lembar" Style="{StaticResource FieldLabel}" />
+                    <Label Grid.Column="1" Text="●" FontSize="12"
+                           TextColor="{Binding SharesConfidence, Converter={StaticResource ConfidenceColorConverter}}" />
+                    <Label Grid.Column="2" FontSize="11" TextColor="#777"
+                           Text="{Binding SharesConfidence, Converter={StaticResource ConfidenceTextConverter}}" />
+                </Grid>
+                <Entry Text="{Binding Shares}" Keyboard="Numeric" Style="{StaticResource FieldEntry}" />
+
+                <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="6">
+                    <Label Grid.Column="0" Text="Harga per lembar" Style="{StaticResource FieldLabel}" />
+                    <Label Grid.Column="1" Text="●" FontSize="12"
+                           TextColor="{Binding PriceConfidence, Converter={StaticResource ConfidenceColorConverter}}" />
+                    <Label Grid.Column="2" FontSize="11" TextColor="#777"
+                           Text="{Binding PriceConfidence, Converter={StaticResource ConfidenceTextConverter}}" />
+                </Grid>
+                <Entry Text="{Binding Price}" Keyboard="Numeric" Style="{StaticResource FieldEntry}" />
+            </VerticalStackLayout>
+
+            <!-- Raw OCR output, so a suspicious number can be checked against what was read. -->
+            <Button Text="Lihat teks hasil scan" Command="{Binding ToggleRawTextCommand}"
+                    BackgroundColor="Transparent" TextColor="#888" FontSize="12"
+                    BorderColor="#2A2A45" BorderWidth="1" CornerRadius="8"
+                    HeightRequest="38" Margin="0,12,0,0" />
+
+            <Frame IsVisible="{Binding IsRawTextVisible}" BackgroundColor="#0F1A2E"
+                   BorderColor="#2A2A45" CornerRadius="8" Padding="10">
+                <Label Text="{Binding RawText}" TextColor="#9AA5B1" FontSize="11"
+                       FontFamily="Consolas" LineBreakMode="WordWrap" />
+            </Frame>
+
+            <Label Text="{Binding ErrorMessage}" TextColor="#FF6B6B" FontSize="12" Margin="0,6,0,0"
+                   IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}" />
+
+            <Button Text="Simpan Transaksi" Command="{Binding SaveCommand}"
+                    BackgroundColor="#E94560" TextColor="White" CornerRadius="8"
+                    HeightRequest="48" Margin="0,8,0,24" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
