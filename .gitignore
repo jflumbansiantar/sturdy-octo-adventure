@@ -63,3 +63,5 @@ MiniWealthManagement.iml
 # Kode test sengaja TETAP ter-version - jangan tambahkan 'tests/' di sini.
 tests/**/[Bb]in/
 tests/**/[Oo]bj/
+
+appsettings.json
