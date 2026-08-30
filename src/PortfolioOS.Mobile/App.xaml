@@ -14,6 +14,8 @@
             <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
             <converters:GainColorConverter x:Key="GainColorConverter" />
             <converters:DebtStatusColorConverter x:Key="DebtStatusColorConverter" />
+            <converters:ZeroToTrueConverter x:Key="ZeroToTrueConverter" />
+            <converters:MoneyConverter x:Key="MoneyConverter" />
             <converters:DebtProgressConverter x:Key="DebtProgressConverter" />
         </ResourceDictionary>
     </Application.Resources>

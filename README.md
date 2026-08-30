@@ -256,6 +256,38 @@ Data awal diisi otomatis oleh `DataSeeder.cs` saat API startup (hanya jika tabel
 
 ---
 
+## Menjalankan via Docker
+
+Cara tercepat untuk menjalankan API + Web + PostgreSQL sekaligus, tanpa install Postgres/dotnet SDK secara lokal:
+
+```bash
+docker compose up -d --build
+```
+
+- Web: `http://localhost:8081`
+- API / Swagger: `http://localhost:5243/swagger`
+- PostgreSQL: `localhost:5432` (`postgres` / `postgres`), data persisten di named volume `pgdata`
+
+Migrations dan seed data otomatis dijalankan oleh container `api` saat pertama kali start (menunggu `postgres` sehat lebih dulu via healthcheck). Default login tetap `admin` / `password`.
+
+Untuk mematikan (dan hapus data DB):
+
+```bash
+docker compose down -v
+```
+
+Untuk hanya mematikan tanpa hapus data:
+
+```bash
+docker compose down
+```
+
+> Web (Blazor WASM) mengarah ke API via `src/PortfolioOS.Web/wwwroot/appsettings.Production.json` (`http://localhost:5243`) — file terpisah dari `appsettings.json` yang dipakai `dotnet run` lokal, karena secara default Blazor WASM standalone yang dilayani nginx berjalan di environment `Production`. Jika port API di-`docker-compose.yml` diubah, sesuaikan juga file ini.
+
+Mobile (MAUI) tidak di-Dockerize karena butuh build native Android/iOS.
+
+---
+
 ## Variabel Lingkungan (Produksi)
 
 Untuk deployment produksi, override konfigurasi via environment variables:

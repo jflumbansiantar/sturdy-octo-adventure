@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:PortfolioOS.Mobile.ViewModels"
+             xmlns:models="clr-namespace:PortfolioOS.Mobile.Models"
              x:Class="PortfolioOS.Mobile.Pages.HoldingsPage"
              x:DataType="vm:HoldingsViewModel"
              Title="Add Holding"
@@ -47,6 +48,48 @@
                     IsEnabled="{Binding IsSaving, Converter={StaticResource InverseBoolConverter}}"
                     BackgroundColor="#E94560" TextColor="White" CornerRadius="8"
                     HeightRequest="48" Margin="0,8,0,0" />
+
+
+            <!-- Daftar holding -->
+            <BoxView HeightRequest="1" Color="#2A2A45" Margin="0,16,0,4" />
+
+            <Grid ColumnDefinitions="*,Auto">
+                <Label Grid.Column="0" Text="Your Holdings" TextColor="White" FontSize="16" FontAttributes="Bold" />
+                <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}"
+                                   Color="#E94560" HeightRequest="18" WidthRequest="18" />
+            </Grid>
+
+            <Label Text="No holdings yet." TextColor="#666" FontSize="13" Margin="0,4,0,0"
+                   IsVisible="{Binding Holdings.Count, Converter={StaticResource ZeroToTrueConverter}}" />
+
+            <CollectionView ItemsSource="{Binding Holdings}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:HoldingModel">
+                        <Frame BackgroundColor="#16213E" BorderColor="Transparent" CornerRadius="10" Padding="12" Margin="0,0,0,8">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <VerticalStackLayout Grid.Column="0">
+                                    <Label Text="{Binding Ticker}" TextColor="White" FontAttributes="Bold" FontSize="15" />
+                                    <Label Text="{Binding Name}" TextColor="#888" FontSize="12" />
+                                    <Label Text="{Binding Shares, StringFormat='{0:N2} shares'}" TextColor="#666" FontSize="11" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="1" HorizontalOptions="End">
+                                    <Label TextColor="White" FontSize="14" HorizontalTextAlignment="End">
+                                        <Label.Text>
+                                            <MultiBinding Converter="{StaticResource MoneyConverter}">
+                                                <Binding Path="MarketValue" />
+                                                <Binding Path="Currency" />
+                                            </MultiBinding>
+                                        </Label.Text>
+                                    </Label>
+                                    <Label Text="{Binding GainLossPct, StringFormat='{0:F2}%'}"
+                                           TextColor="{Binding GainLossPct, Converter={StaticResource GainColorConverter}}"
+                                           FontSize="12" HorizontalTextAlignment="End" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
 
         </VerticalStackLayout>
     </ScrollView>

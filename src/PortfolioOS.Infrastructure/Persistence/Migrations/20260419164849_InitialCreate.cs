@@ -11,6 +11,29 @@ namespace PortfolioOS.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // Native Postgres enum types referenced by HasColumnType(...) below.
+            // These must exist before any table that uses them is created.
+            migrationBuilder.Sql("CREATE TYPE debt_type AS ENUM ('Credit Card', 'Personal Loan', 'Mortgage', 'Auto Loan', 'Student Loan', 'Other');");
+            migrationBuilder.Sql("CREATE TYPE debt_status AS ENUM ('Active', 'Lunas');");
+            migrationBuilder.Sql("CREATE TYPE currency_type AS ENUM ('USD', 'IDR');");
+            migrationBuilder.Sql("CREATE TYPE holding_type AS ENUM ('Stock', 'ETF', 'Crypto', 'Mutual Fund');");
+            migrationBuilder.Sql("CREATE TYPE market_type AS ENUM ('US', 'ID');");
+            migrationBuilder.Sql("CREATE TYPE account_type AS ENUM ('Asset', 'Liability', 'Equity', 'Income', 'Expense');");
+            migrationBuilder.Sql("CREATE TYPE normal_balance_type AS ENUM ('Debit', 'Credit');");
+            migrationBuilder.Sql("CREATE TYPE transaction_category AS ENUM ('STOCK', 'DEBT', 'INCOME', 'EXPENSE');");
+
+            // Npgsql sends string-converted enum values as `text` parameters, and Postgres has no
+            // built-in text -> enum cast. Reuse each enum's own input function as an assignment cast
+            // so plain string parameters can be inserted/updated into these columns directly.
+            migrationBuilder.Sql("CREATE CAST (text AS debt_type) WITH INOUT AS ASSIGNMENT;");
+            migrationBuilder.Sql("CREATE CAST (text AS debt_status) WITH INOUT AS ASSIGNMENT;");
+            migrationBuilder.Sql("CREATE CAST (text AS currency_type) WITH INOUT AS ASSIGNMENT;");
+            migrationBuilder.Sql("CREATE CAST (text AS holding_type) WITH INOUT AS ASSIGNMENT;");
+            migrationBuilder.Sql("CREATE CAST (text AS market_type) WITH INOUT AS ASSIGNMENT;");
+            migrationBuilder.Sql("CREATE CAST (text AS account_type) WITH INOUT AS ASSIGNMENT;");
+            migrationBuilder.Sql("CREATE CAST (text AS normal_balance_type) WITH INOUT AS ASSIGNMENT;");
+            migrationBuilder.Sql("CREATE CAST (text AS transaction_category) WITH INOUT AS ASSIGNMENT;");
+
             migrationBuilder.CreateTable(
                 name: "app_settings",
                 columns: table => new
@@ -259,6 +282,24 @@ namespace PortfolioOS.Infrastructure.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "ledger_accounts");
+
+            migrationBuilder.Sql("DROP CAST IF EXISTS (text AS debt_type);");
+            migrationBuilder.Sql("DROP CAST IF EXISTS (text AS debt_status);");
+            migrationBuilder.Sql("DROP CAST IF EXISTS (text AS currency_type);");
+            migrationBuilder.Sql("DROP CAST IF EXISTS (text AS holding_type);");
+            migrationBuilder.Sql("DROP CAST IF EXISTS (text AS market_type);");
+            migrationBuilder.Sql("DROP CAST IF EXISTS (text AS account_type);");
+            migrationBuilder.Sql("DROP CAST IF EXISTS (text AS normal_balance_type);");
+            migrationBuilder.Sql("DROP CAST IF EXISTS (text AS transaction_category);");
+
+            migrationBuilder.Sql("DROP TYPE debt_type;");
+            migrationBuilder.Sql("DROP TYPE debt_status;");
+            migrationBuilder.Sql("DROP TYPE currency_type;");
+            migrationBuilder.Sql("DROP TYPE holding_type;");
+            migrationBuilder.Sql("DROP TYPE market_type;");
+            migrationBuilder.Sql("DROP TYPE account_type;");
+            migrationBuilder.Sql("DROP TYPE normal_balance_type;");
+            migrationBuilder.Sql("DROP TYPE transaction_category;");
         }
     }
 }

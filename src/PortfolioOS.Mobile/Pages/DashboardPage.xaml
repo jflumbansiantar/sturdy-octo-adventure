@@ -55,7 +55,14 @@
                                         <Label Text="{Binding Name}" TextColor="#888" FontSize="12" />
                                     </VerticalStackLayout>
                                     <VerticalStackLayout Grid.Column="1" HorizontalOptions="End">
-                                        <Label Text="{Binding CurrentPrice, StringFormat='${0:F2}'}" TextColor="White" FontSize="14" HorizontalTextAlignment="End" />
+                                        <Label TextColor="White" FontSize="14" HorizontalTextAlignment="End">
+                                        <Label.Text>
+                                            <MultiBinding Converter="{StaticResource MoneyConverter}">
+                                                <Binding Path="CurrentPrice" />
+                                                <Binding Path="Currency" />
+                                            </MultiBinding>
+                                        </Label.Text>
+                                    </Label>
                                         <Label TextColor="{Binding DayChangePct, Converter={StaticResource GainColorConverter}}"
                                                FontSize="12" HorizontalTextAlignment="End">
                                             <Label.Text>
@@ -82,10 +89,14 @@
                                         <Label Text="{Binding Name}" TextColor="White" FontSize="14" />
                                         <Label Text="{Binding Category}" TextColor="#888" FontSize="12" />
                                     </VerticalStackLayout>
-                                    <Label Grid.Column="1"
-                                           Text="{Binding Total, StringFormat='${0:N2}'}"
-                                           TextColor="White" FontSize="14"
-                                           VerticalOptions="Center" />
+                                    <Label Grid.Column="1" TextColor="White" FontSize="14" VerticalOptions="Center">
+                                        <Label.Text>
+                                            <MultiBinding Converter="{StaticResource MoneyConverter}">
+                                                <Binding Path="Total" />
+                                                <Binding Path="Market" />
+                                            </MultiBinding>
+                                        </Label.Text>
+                                    </Label>
                                 </Grid>
                             </Frame>
                         </DataTemplate>

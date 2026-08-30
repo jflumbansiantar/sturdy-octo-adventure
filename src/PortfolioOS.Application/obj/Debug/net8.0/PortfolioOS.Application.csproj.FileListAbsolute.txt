@@ -45,3 +45,4 @@ C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Appli
 C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Application\obj\Debug\net8.0\PortfolioOS.Application.csproj.CoreCompileInputs.cache
 C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Application\obj\Debug\net8.0\Portfoli.A54EA465.Up2Date
 C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Application\obj\Debug\net8.0\ref\PortfolioOS.Application.dll
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Application\obj\Debug\net8.0\PortfolioOS.Application.sourcelink.json

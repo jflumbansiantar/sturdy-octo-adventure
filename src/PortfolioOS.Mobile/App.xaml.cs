@@ -7,6 +7,6 @@ public partial class App : Application
     public App(AuthService auth)
     {
         InitializeComponent();
-        MainPage = new AppShell();
+        MainPage = new AppShell(auth);
     }
 }

@@ -2,7 +2,7 @@
 @inject PortfolioApiClient Api
 @inject IDialogService Dialog
 @inject ISnackbar Snackbar
-@inject AppState AppState
+@inherits AppStateComponentBase
 
 <PageTitle>Holdings – PortfolioOS</PageTitle>
 
@@ -84,7 +84,7 @@
             <MudSelectItem Value="@("ID")">Indonesia (IDX)</MudSelectItem>
         </MudSelect>
         <MudNumericField @bind-Value="_form.Shares" Label="Shares" Variant="Variant.Outlined" Class="mb-3" Format="F4" />
-        <MudNumericField @bind-Value="_form.AvgCost" Label="Avg Cost (USD)" Variant="Variant.Outlined" Format="F2" />
+        <MudNumericField @bind-Value="_form.AvgCost" Label="Avg Cost (IDR)" Variant="Variant.Outlined" Format="F2" />
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="@(() => _showDialog = false)">Cancel</MudButton>

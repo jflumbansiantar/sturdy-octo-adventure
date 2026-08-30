@@ -1,7 +1,7 @@
 @page "/transactions"
 @inject PortfolioApiClient Api
 @inject ISnackbar Snackbar
-@inject AppState AppState
+@inherits AppStateComponentBase
 
 <PageTitle>Transactions – PortfolioOS</PageTitle>
 
@@ -70,7 +70,7 @@
         </MudSelect>
         <MudTextField @bind-Value="_form.Name" Label="Name" Variant="Variant.Outlined" Class="mb-3" />
         <MudTextField @bind-Value="_form.Type" Label="Type (e.g. BUY, SELL, PAYMENT)" Variant="Variant.Outlined" Class="mb-3" />
-        <MudNumericField @bind-Value="_form.Total" Label="Total (USD)" Variant="Variant.Outlined" Class="mb-3" Format="F2" />
+        <MudNumericField @bind-Value="_form.Total" Label="Total (IDR)" Variant="Variant.Outlined" Class="mb-3" Format="F2" />
         @if (_form.Category == "Stock")
         {
             <MudSelect @bind-Value="_form.Market" Label="Market" Variant="Variant.Outlined" Class="mb-3">

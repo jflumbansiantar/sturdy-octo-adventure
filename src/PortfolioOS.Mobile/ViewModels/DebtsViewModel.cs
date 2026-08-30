@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using PortfolioOS.Mobile.Models;
 using PortfolioOS.Mobile.Services;
 
 namespace PortfolioOS.Mobile.ViewModels;
@@ -13,6 +14,8 @@ public partial class DebtsViewModel : ObservableObject
     [ObservableProperty] private string _errorMessage = string.Empty;
     [ObservableProperty] private string _successMessage = string.Empty;
     [ObservableProperty] private bool _isSaving;
+    [ObservableProperty] private bool _isLoading;
+    [ObservableProperty] private List<DebtModel> _debts = [];
 
     [ObservableProperty] private string _formName = string.Empty;
     [ObservableProperty] private string _formType = "CreditCard";
@@ -54,6 +57,7 @@ public partial class DebtsViewModel : ObservableObject
                 notes = FormNotes
             });
             SuccessMessage = $"{FormName} added!";
+            await LoadAsync();   // segarkan daftar setelah simpan
             FormName = string.Empty;
             FormBalance = 0;
             FormInterestRate = 0;
@@ -69,6 +73,25 @@ public partial class DebtsViewModel : ObservableObject
         finally
         {
             IsSaving = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task LoadAsync()
+    {
+        IsLoading = true;
+        ErrorMessage = string.Empty;
+        try
+        {
+            Debts = await _api.GetDebtsAsync();
+        }
+        catch
+        {
+            ErrorMessage = "Failed to load debts.";
+        }
+        finally
+        {
+            IsLoading = false;
         }
     }
 }

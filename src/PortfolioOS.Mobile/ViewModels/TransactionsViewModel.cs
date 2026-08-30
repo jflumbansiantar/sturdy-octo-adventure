@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using PortfolioOS.Mobile.Models;
 using PortfolioOS.Mobile.Services;
 
 namespace PortfolioOS.Mobile.ViewModels;
@@ -13,6 +14,8 @@ public partial class TransactionsViewModel : ObservableObject
     [ObservableProperty] private string _errorMessage = string.Empty;
     [ObservableProperty] private string _successMessage = string.Empty;
     [ObservableProperty] private bool _isSaving;
+    [ObservableProperty] private bool _isLoading;
+    [ObservableProperty] private List<TransactionModel> _transactions = [];
 
     [ObservableProperty] private string _formName = string.Empty;
     [ObservableProperty] private string _formCategory = "Income";
@@ -44,6 +47,7 @@ public partial class TransactionsViewModel : ObservableObject
                 total = FormTotal
             });
             SuccessMessage = "Transaction saved!";
+            await LoadAsync();   // segarkan daftar setelah simpan
             FormName = string.Empty;
             FormTotal = 0;
         }
@@ -54,6 +58,25 @@ public partial class TransactionsViewModel : ObservableObject
         finally
         {
             IsSaving = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task LoadAsync()
+    {
+        IsLoading = true;
+        ErrorMessage = string.Empty;
+        try
+        {
+            Transactions = await _api.GetTransactionsAsync();
+        }
+        catch
+        {
+            ErrorMessage = "Failed to load transactions.";
+        }
+        finally
+        {
+            IsLoading = false;
         }
     }
 }

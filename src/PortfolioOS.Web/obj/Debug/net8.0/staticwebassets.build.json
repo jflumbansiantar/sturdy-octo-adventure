@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "3TKLkR9tVklnc+WIhp14rfy7iBaur17NxyazYAPKSMM=",
+  "Hash": "UfZQ05jGAIoWRH6iIcYDhdIPmmYparPNW/qX0cKrwlc=",
   "Source": "PortfolioOS.Web",
   "BasePath": "/",
   "Mode": "Root",
@@ -8071,6 +8071,25 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\appsettings.json"
+    },
+    {
+      "Identity": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Web\\wwwroot\\appsettings.Production.json",
+      "SourceId": "PortfolioOS.Web",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Web\\wwwroot\\",
+      "BasePath": "/",
+      "RelativePath": "appsettings.Production.json",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "WasmResource",
+      "AssetTraitValue": "settings",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\appsettings.Production.json"
     },
     {
       "Identity": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Web\\wwwroot\\css\\app.css",

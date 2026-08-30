@@ -33,3 +33,4 @@ C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Domai
 C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Domain\bin\Debug\net8.0\PortfolioOS.Domain.dll
 C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Domain\bin\Debug\net8.0\PortfolioOS.Domain.pdb
 C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Domain\obj\Debug\net8.0\ref\PortfolioOS.Domain.dll
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Domain\obj\Debug\net8.0\PortfolioOS.Domain.sourcelink.json

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PortfolioOS.Shared")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+863738b5f18b98318a4aff600d5a1fd10a05871d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+63252db892a92629d734afe1c808c0b22de93bc8")]
 [assembly: System.Reflection.AssemblyProductAttribute("PortfolioOS.Shared")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PortfolioOS.Shared")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

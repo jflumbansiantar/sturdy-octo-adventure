@@ -13,9 +13,6 @@
             <MudSpacer />
             <MudIconButton Icon="@(AppState.PrivacyMode ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
                            Color="Color.Inherit" Title="Toggle Privacy" OnClick="AppState.TogglePrivacy" />
-            <MudButton Color="Color.Inherit" OnClick="AppState.ToggleCurrency">
-                @(AppState.ShowInIDR ? "IDR" : "USD")
-            </MudButton>
             <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="LogoutAsync" />
         </MudAppBar>
 
@@ -30,7 +27,7 @@
         </MudMainContent>
     </MudLayout>
 }
-else if (_checked)
+else if (_checked && Nav.Uri.Contains("/login"))
 {
     @Body
 }

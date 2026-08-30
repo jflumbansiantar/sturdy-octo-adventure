@@ -19,14 +19,15 @@ public class GetLiveQuotesHandler : IRequestHandler<GetLiveQuotesQuery, List<Quo
 
     public async Task<List<QuoteDto>> Handle(GetLiveQuotesQuery request, CancellationToken ct)
     {
-        var tickers = await _context.Holdings
+        var lookups = await _context.Holdings
             .AsNoTracking()
-            .Select(h => h.Ticker)
+            .Select(h => new QuoteRequest(h.Ticker, h.Market, h.Type))
             .ToListAsync(ct);
 
-        if (tickers.Count == 0) return [];
+        if (lookups.Count == 0) return [];
 
-        var quotes = await _marketData.GetQuotesAsync(tickers, ct);
+        var tickers = lookups.Select(l => l.Ticker).ToList();
+        var quotes  = await _marketData.GetQuotesAsync(lookups, ct);
 
         var existingMap = await _context.PriceCaches
             .Where(p => tickers.Contains(p.Ticker))

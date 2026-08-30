@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using PortfolioOS.Mobile.Models;
 using PortfolioOS.Mobile.Services;
 
 namespace PortfolioOS.Mobile.ViewModels;
@@ -13,6 +14,8 @@ public partial class HoldingsViewModel : ObservableObject
     [ObservableProperty] private string _errorMessage = string.Empty;
     [ObservableProperty] private string _successMessage = string.Empty;
     [ObservableProperty] private bool _isSaving;
+    [ObservableProperty] private bool _isLoading;
+    [ObservableProperty] private List<HoldingModel> _holdings = [];
 
     [ObservableProperty] private string _formTicker = string.Empty;
     [ObservableProperty] private string _formName = string.Empty;
@@ -50,6 +53,7 @@ public partial class HoldingsViewModel : ObservableObject
                 avgCost = FormAvgCost
             });
             SuccessMessage = $"{FormTicker.ToUpper().Trim()} added!";
+            await LoadAsync();   // segarkan daftar setelah simpan
             FormTicker = string.Empty;
             FormName = string.Empty;
             FormSubType = string.Empty;
@@ -63,6 +67,25 @@ public partial class HoldingsViewModel : ObservableObject
         finally
         {
             IsSaving = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task LoadAsync()
+    {
+        IsLoading = true;
+        ErrorMessage = string.Empty;
+        try
+        {
+            Holdings = await _api.GetHoldingsAsync();
+        }
+        catch
+        {
+            ErrorMessage = "Failed to load holdings.";
+        }
+        finally
+        {
+            IsLoading = false;
         }
     }
 }

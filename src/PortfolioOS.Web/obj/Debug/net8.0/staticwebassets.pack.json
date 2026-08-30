@@ -13,6 +13,10 @@
       "PackagePath": "staticwebassets\\PortfolioOS.Web.styles.css"
     },
     {
+      "Id": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Web\\wwwroot\\appsettings.Production.json",
+      "PackagePath": "staticwebassets\\appsettings.Production.json"
+    },
+    {
       "Id": "C:\\Users\\jfran\\Documents\\My Web Sites\\MiniWealthManagement\\src\\PortfolioOS.Web\\wwwroot\\appsettings.json",
       "PackagePath": "staticwebassets\\appsettings.json"
     },

@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/.idea/
+.git/
+.github/
+**/node_modules/
+tests/
+src/PortfolioOS.Mobile/
+*.md

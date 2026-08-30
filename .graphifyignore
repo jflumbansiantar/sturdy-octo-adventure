@@ -1,0 +1,30 @@
+# Build artifacts - not part of the knowledge graph
+bin/
+obj/
+.vs/
+.git/
+artifacts/
+TestResults/
+
+# Generated / vendored assets
+**/resizetizer/**
+**/*.designer.cs
+**/*.g.cs
+**/*.g.i.cs
+**/AssemblyInfo.cs
+**/GlobalUsings.g.cs
+
+# Binaries and archives
+*.dll
+*.exe
+*.pdb
+*.gz
+*.zip
+*.nupkg
+*.so
+*.dylib
+*.cache
+
+# graphify's own output
+graphify-out/
+///

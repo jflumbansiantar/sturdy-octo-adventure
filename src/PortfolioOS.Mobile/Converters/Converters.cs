@@ -61,3 +61,56 @@ public class DebtProgressConverter : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }
+
+public class ZeroToTrueConverter : IValueConverter
+{
+    // true kalau koleksi kosong - dipakai untuk menampilkan pesan "belum ada data"
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => value is int i && i == 0;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+/// <summary>
+/// Formats an amount with the right symbol for its currency.
+/// Accepts either a currency code ("USD"/"IDR") or a market code ("US"/"ID");
+/// anything else - including null, as on non-market transactions - is treated
+/// as rupiah, which is this app's default.
+/// </summary>
+public class MoneyConverter : IMultiValueConverter
+{
+    private static readonly CultureInfo Usd = CultureInfo.GetCultureInfo("en-US");
+    private static readonly CultureInfo Idr = CultureInfo.GetCultureInfo("id-ID");
+
+    public object Convert(object[]? values, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (values is null || values.Length == 0) return string.Empty;
+
+        decimal amount = values[0] switch
+        {
+            decimal d => d,
+            double dbl => (decimal)dbl,
+            int i => i,
+            _ => 0m
+        };
+
+        var code = values.Length > 1 ? values[1] as string : null;
+        return Format(amount, code);
+    }
+
+    public static string Format(decimal amount, string? code)
+    {
+        var isUsd = string.Equals(code, "USD", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(code, "US", StringComparison.OrdinalIgnoreCase);
+
+        // rupiah has no meaningful minor unit, so no decimals
+        return isUsd
+            ? "$" + amount.ToString("N2", Usd)
+            : "Rp " + amount.ToString("N0", Idr);
+    }
+
+    public object[] ConvertBack(object? value, Type[] targetTypes, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+

@@ -1,0 +1,65 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio / Rider / VS Code
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# .NET / MSBuild
+project.lock.json
+project.fragment.lock.json
+artifacts/
+*.nupkg
+*.snupkg
+msbuild.log
+msbuild.err
+msbuild.wrn
+
+# Test results / coverage
+[Tt]est[Rr]esult*/
+coverage*.json
+coverage*.xml
+coverage*.info
+*.coverage
+*.coveragexml
+
+# MAUI / mobile
+*.aab
+*.apk
+*.ipa
+*.app
+*.keystore
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local secrets
+appsettings.Development.local.json
+*.pfx
+*.p12
+secrets.json
+.env
+.env.local
+
+# graphify
+graphify-out/
+
+# Path SDK spesifik mesin
+Directory.Build.props
+MiniWealthManagement.iml
+
+# Test: hanya build output yang diabaikan.
+# Kode test sengaja TETAP ter-version - jangan tambahkan 'tests/' di sini.
+tests/**/[Bb]in/
+tests/**/[Oo]bj/

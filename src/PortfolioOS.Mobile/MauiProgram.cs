@@ -19,7 +19,7 @@ public static class MauiProgram
             });
 
         // API base URL — override via appsettings or environment variable for prod
-        var apiBase = "https://10.0.2.2:7195"; // Android emulator → localhost
+        var apiBase = "http://localhost:5243"; // via `adb reverse tcp:5243 tcp:5243` → API Docker di PC
 
         builder.Services.AddSingleton<AuthService>();
         builder.Services.AddSingleton(_ => new HttpClient(new HttpClientHandler

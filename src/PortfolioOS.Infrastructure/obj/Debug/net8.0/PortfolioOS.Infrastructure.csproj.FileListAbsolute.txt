@@ -57,3 +57,4 @@ C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Infra
 C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Infrastructure\obj\Debug\net8.0\Portfoli.0EE158DC.Up2Date
 C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Infrastructure\obj\Debug\net8.0\PortfolioOS.Infrastructure.genruntimeconfig.cache
 C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Infrastructure\obj\Debug\net8.0\ref\PortfolioOS.Infrastructure.dll
+C:\Users\jfran\Documents\My Web Sites\MiniWealthManagement\src\PortfolioOS.Infrastructure\obj\Debug\net8.0\PortfolioOS.Infrastructure.sourcelink.json

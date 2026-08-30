@@ -3,7 +3,7 @@
        xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
        xmlns:pages="clr-namespace:PortfolioOS.Mobile.Pages"
        x:Class="PortfolioOS.Mobile.AppShell"
-       Shell.NavBarBackgroundColor="#16213E"
+       Shell.BackgroundColor="#16213E"
        Shell.NavBarHasShadow="False"
        Shell.TitleColor="White"
        Shell.TabBarBackgroundColor="#16213E"
@@ -17,17 +17,17 @@
 
     <!-- Main tab bar -->
     <TabBar Route="main">
+        <ShellContent Route="dashboard"
+                      Title="Dashboard"
+                      ContentTemplate="{DataTemplate pages:DashboardPage}" />
         <ShellContent Route="holdings"
                       Title="Holding"
-                      Shell.TabBarIcon="trending_up.png"
                       ContentTemplate="{DataTemplate pages:HoldingsPage}" />
         <ShellContent Route="transactions"
                       Title="Transaction"
-                      Shell.TabBarIcon="receipt.png"
                       ContentTemplate="{DataTemplate pages:TransactionsPage}" />
         <ShellContent Route="debts"
                       Title="Debt"
-                      Shell.TabBarIcon="credit_card.png"
                       ContentTemplate="{DataTemplate pages:DebtsPage}" />
     </TabBar>
 
