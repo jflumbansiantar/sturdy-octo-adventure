@@ -58,6 +58,23 @@ public class PortfolioApiClient(HttpClient http, AuthService auth)
         return await http.GetFromJsonAsync<PortfolioSummaryModel>("api/portfolio/summary");
     }
 
+    /// <summary>
+    /// USD-IDR rate for the currency toggle. Returns null rather than throwing: a missing
+    /// rate should grey out the dollar view, not break the page.
+    /// </summary>
+    public async Task<ExchangeRateModel?> GetExchangeRateAsync()
+    {
+        await PrepareAsync();
+        try
+        {
+            return await http.GetFromJsonAsync<ExchangeRateModel>("api/market/fx");
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     // Transactions
     public async Task<List<TransactionModel>> GetTransactionsAsync(string? category = null, DateOnly? from = null, DateOnly? to = null)
     {

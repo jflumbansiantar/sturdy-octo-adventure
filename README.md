@@ -1,6 +1,6 @@
 # PortfolioOS — Mini Wealth Management
 
-Aplikasi manajemen kekayaan pribadi berbasis web dan mobile. Fitur utama mencakup portofolio saham multi-market (US & IDR), pelacakan transaksi, manajemen utang, pembukuan double-entry, dan integrasi harga pasar real-time via Yahoo Finance.
+Aplikasi manajemen kekayaan pribadi berbasis web dan mobile. Fitur utama mencakup portofolio saham multi-market (US & IDR), pelacakan transaksi, manajemen utang, pembukuan double-entry, integrasi harga pasar real-time via Yahoo Finance, dan input transaksi dengan memotret dokumen (OCR on-device di aplikasi mobile).
 
 ---
 
@@ -19,6 +19,7 @@ Aplikasi manajemen kekayaan pribadi berbasis web dan mobile. Fitur utama mencaku
 | **Auth** | JWT Bearer (HS256) |
 | **Market Data** | Yahoo Finance HTTP API |
 | **Mobile MVVM** | CommunityToolkit.Mvvm 8 |
+| **OCR (mobile)** | ML Kit Text Recognition (Android) + Vision framework (iOS) — on-device, tanpa jaringan |
 | **Unit Testing** | xUnit + FluentAssertions + EF InMemory |
 
 ---
@@ -73,6 +74,9 @@ PortfolioOS.sln
 │   │       └── YahooFinanceMarketDataService.cs
 │   │
 │   ├── PortfolioOS.Shared/     # DTOs / constants bersama
+│   │   └── Scanning/           # mesin baca dokumen: MoneyParser, IndoDateParser,
+│   │                           # AmountPicker, DocumentClassifier, Parsers/*
+│   │                           # pure C#, tanpa I/O — bisa dites tanpa emulator
 │   │
 │   ├── PortfolioOS.API/
 │   │   ├── Controllers/        # AuthController, HoldingsController, ...
@@ -84,15 +88,17 @@ PortfolioOS.sln
 │   │   └── Pages/              # Dashboard, Holdings, Transactions, Debts, Ledger
 │   │
 │   └── PortfolioOS.Mobile/     # .NET MAUI
-│       ├── Pages/              # LoginPage, DashboardPage, HoldingsPage, ...
+│       ├── Pages/              # LoginPage, DashboardPage, HoldingsPage, ScanReviewPage, ...
 │       ├── ViewModels/         # MVVM, CommunityToolkit.Mvvm
 │       ├── Services/           # AuthService, ApiClient
+│       │   └── Ocr/            # IOcrService — implementasi per-platform di Platforms/
 │       ├── Models/             # ApiModels.cs
 │       ├── Converters/         # GainColorConverter, DebtProgressConverter, ...
 │       ├── AppShell.xaml       # Tab bar navigation
 │       └── MauiProgram.cs      # DI wiring
 │
 └── tests/
+    ├── PortfolioOS.Shared.Tests/        # Unit tests — parser struk/transfer/slip/tagihan/saham
     ├── PortfolioOS.Application.Tests/   # Unit tests — Holdings, Transactions
     └── PortfolioOS.API.Tests/           # Integration tests
 ```
@@ -107,7 +113,8 @@ PortfolioOS.sln
 | PostgreSQL | 15 |
 | Node.js *(opsional, untuk tooling Blazor)* | 18+ |
 | JDK | **21** (wajib untuk build Android MAUI) |
-| Android SDK | API 33+ |
+| Android SDK | API 34 (compile) |
+| Android minimum | **API 23** (Android 6.0) — dituntut oleh ML Kit |
 | dotnet-ef | 8.0 (global tool) |
 
 > **Catatan JDK:** .NET MAUI 8 membutuhkan JDK 21. JDK 22+ **tidak** kompatibel.  
@@ -210,6 +217,7 @@ dotnet run --project src/PortfolioOS.Mobile -f net8.0-android
 ### 8. Jalankan Unit Tests
 
 ```bash
+dotnet test tests/PortfolioOS.Shared.Tests        # parser dokumen — cepat, tanpa emulator
 dotnet test tests/PortfolioOS.Application.Tests
 dotnet test tests/PortfolioOS.API.Tests
 ```

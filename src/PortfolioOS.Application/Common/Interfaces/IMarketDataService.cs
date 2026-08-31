@@ -14,4 +14,11 @@ public record QuoteResult(
 public interface IMarketDataService
 {
     Task<IReadOnlyList<QuoteResult>> GetQuotesAsync(IEnumerable<QuoteRequest> requests, CancellationToken ct = default);
+
+    /// <summary>
+    /// Spot price of one USD in IDR. Null when the provider cannot be reached, which callers
+    /// must handle rather than defaulting to 1 - a rate of 1 would silently understate every
+    /// dollar holding by four orders of magnitude.
+    /// </summary>
+    Task<decimal?> GetUsdIdrRateAsync(CancellationToken ct = default);
 }

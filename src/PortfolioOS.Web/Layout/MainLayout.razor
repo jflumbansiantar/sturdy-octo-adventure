@@ -2,6 +2,7 @@
 @inject AuthService AuthService
 @inject NavigationManager Nav
 @inject AppState AppState
+@inject PortfolioApiClient Api
 
 @if (_checked && _authenticated)
 {
@@ -11,6 +12,10 @@
                            OnClick="@(() => _drawerOpen = !_drawerOpen)" />
             <MudText Typo="Typo.h6" Class="ml-2">PortfolioOS</MudText>
             <MudSpacer />
+            <MudButton Color="Color.Inherit" OnClick="ToggleCurrency"
+                       Title="@($"1 USD = Rp {AppState.UsdIdrRate:N0}{(AppState.IsRateLive ? "" : " (kurs tersimpan)")}")">
+                @AppState.CurrencyLabel
+            </MudButton>
             <MudIconButton Icon="@(AppState.PrivacyMode ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
                            Color="Color.Inherit" Title="Toggle Privacy" OnClick="AppState.TogglePrivacy" />
             <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="LogoutAsync" />
@@ -42,8 +47,19 @@ else if (_checked && Nav.Uri.Contains("/login"))
         _authenticated = await AuthService.IsAuthenticatedAsync();
         _checked = true;
         if (!_authenticated && !Nav.Uri.Contains("/login"))
+        {
             Nav.NavigateTo("/login");
+            return;
+        }
+
+        // Fetched once per session: the toggle needs a rate before it can show dollars, and
+        // every page reads it from AppState rather than calling the API itself.
+        var fx = await Api.GetExchangeRateAsync();
+        if (fx is not null)
+            AppState.SetRate(fx.Rate, fx.AsOf, fx.IsLive);
     }
+
+    private void ToggleCurrency() => AppState.ToggleCurrency();
 
     private async Task LogoutAsync()
     {

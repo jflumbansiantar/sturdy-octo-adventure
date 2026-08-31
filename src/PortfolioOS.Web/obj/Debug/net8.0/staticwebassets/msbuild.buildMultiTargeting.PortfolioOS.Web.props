@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="..\build\PortfolioOS.Web.props" />
-</Project>

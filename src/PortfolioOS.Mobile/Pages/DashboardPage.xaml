@@ -40,6 +40,10 @@
                     </Frame>
                 </Grid>
 
+                <!-- Totals span both markets, so say so when the FX rate behind them is stale. -->
+                <Label Text="{Binding RateNotice}" TextColor="#FFB74D" FontSize="11"
+                       IsVisible="{Binding RateNotice, Converter={StaticResource StringNotEmptyConverter}}" />
+
                 <!-- Error -->
                 <Label Text="{Binding ErrorMessage}" TextColor="#FF6B6B" IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}" />
 
@@ -59,7 +63,7 @@
                                         <Label.Text>
                                             <MultiBinding Converter="{StaticResource MoneyConverter}">
                                                 <Binding Path="CurrentPrice" />
-                                                <Binding Path="Currency" />
+                                                <Binding Path="PriceCurrency" />
                                             </MultiBinding>
                                         </Label.Text>
                                     </Label>

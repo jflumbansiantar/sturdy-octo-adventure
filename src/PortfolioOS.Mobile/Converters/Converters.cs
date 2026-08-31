@@ -114,3 +114,65 @@ public class MoneyConverter : IMultiValueConverter
         => throw new NotImplementedException();
 }
 
+
+/// <summary>
+/// Colours the dot beside each scanned field. Red does not mean "error" here - it means the
+/// scanner could not read that field at all, so the user has to supply it.
+/// </summary>
+public class ConfidenceColorConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => value is Shared.Scanning.Confidence c
+            ? c switch
+            {
+                Shared.Scanning.Confidence.High => Color.FromArgb("#4CAF50"),
+                Shared.Scanning.Confidence.Medium => Color.FromArgb("#FFC107"),
+                Shared.Scanning.Confidence.Low => Color.FromArgb("#FF9800"),
+                _ => Color.FromArgb("#F44336")
+            }
+            : Colors.Transparent;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+/// <summary>
+/// The same signal in words, because a colour alone is not readable for everyone and says
+/// nothing about what the user is expected to do.
+/// </summary>
+public class ConfidenceTextConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => value is Shared.Scanning.Confidence c
+            ? c switch
+            {
+                Shared.Scanning.Confidence.High => "terbaca jelas",
+                Shared.Scanning.Confidence.Medium => "kemungkinan besar benar",
+                Shared.Scanning.Confidence.Low => "tebakan - mohon dicek",
+                _ => "tidak terbaca - isi manual"
+            }
+            : string.Empty;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+/// <summary>
+/// Formats an amount the API has already converted into the portfolio's base currency.
+/// Distinct from <see cref="MoneyConverter"/>, which labels a value with the currency of the
+/// market it came from - pairing a base-currency total with a holding's native currency code
+/// is exactly how a rupiah figure ends up wearing a dollar sign.
+/// </summary>
+public class BaseMoneyConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => value switch
+        {
+            decimal d => MoneyConverter.Format(d, "IDR"),
+            double dbl => MoneyConverter.Format((decimal)dbl, "IDR"),
+            _ => string.Empty
+        };
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
