@@ -153,8 +153,8 @@ Sesuaikan connection string di `src/PortfolioOS.API/appsettings.json`:
     "ExpiryHours": 24
   },
   "Auth": {
-    "Username": "admin",
-    "Password": "password"
+    "Username": "*username*",
+    "Password": "*password*"
   }
 }
 ```
