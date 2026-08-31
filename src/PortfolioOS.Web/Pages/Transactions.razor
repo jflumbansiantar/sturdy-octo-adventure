@@ -52,7 +52,7 @@
         <MudTd>@context.Market</MudTd>
         <MudTd Style="text-align:right">@context.Shares?.ToString("F4")</MudTd>
         <MudTd Style="text-align:right">@context.Price?.ToString("F2")</MudTd>
-        <MudTd Style="text-align:right">@AppState.FormatValue(context.Total)</MudTd>
+        <MudTd Style="text-align:right">@AppState.FormatMarketValue(context.Total, context.Market)</MudTd>
         <MudTd>
             <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
                            OnClick="@(() => DeleteAsync(context))" />

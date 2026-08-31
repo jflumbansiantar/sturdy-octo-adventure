@@ -43,6 +43,45 @@ public class YahooFinanceMarketDataService(HttpClient http) : IMarketDataService
     }
 
     /// <summary>
+    /// Yahoo quotes FX pairs under a "=X" symbol, and "IDR=X" is the USD-IDR pair rather
+    /// than anything IDR-based - the base currency is implied to be USD.
+    /// </summary>
+    private const string UsdIdrSymbol = "IDR=X";
+
+    public async Task<decimal?> GetUsdIdrRateAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var json = await FetchChartAsync(UsdIdrSymbol, ct);
+            if (json is null) return null;
+
+            var quote = ParseQuote(UsdIdrSymbol, json);
+
+            // A rate near 1 means the response was not the pair we asked for; using it would
+            // wipe out the dollar side of the portfolio, so treat it as a failed lookup.
+            return quote is { CurrentPrice: > 100m } ? quote.CurrentPrice : null;
+        }
+        catch
+        {
+            return null;   // offline or throttled - the caller falls back to a cached rate
+        }
+    }
+
+    /// <summary>Fetches one symbol from the chart endpoint. Null when Yahoo declines.</summary>
+    private async Task<string?> FetchChartAsync(string yahooSymbol, CancellationToken ct)
+    {
+        var url = $"https://query1.finance.yahoo.com/v8/finance/chart/{Uri.EscapeDataString(yahooSymbol)}?interval=1d&range=1d";
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Add("User-Agent", "Mozilla/5.0");
+
+        using var response = await http.SendAsync(request, ct);
+        if (!response.IsSuccessStatusCode) return null;
+
+        return await response.Content.ReadAsStringAsync(ct);
+    }
+
+    /// <summary>
     /// Maps a holding to the symbol Yahoo actually uses.
     /// Indonesian equities need the ".JK" (Jakarta) suffix and crypto needs "-USD";
     /// without them Yahoo resolves a different instrument, or none at all.

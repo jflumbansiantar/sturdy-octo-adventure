@@ -53,6 +53,10 @@
             return;
         }
         await AuthService.SetTokenAsync(result.Token);
-        Nav.NavigateTo("/");
+
+        // forceLoad matters: MainLayout decides whether to draw the app bar in its
+        // OnInitializedAsync, which a client-side navigation does not re-run. Without the
+        // reload the layout still believes the user is anonymous and renders nothing at all.
+        Nav.NavigateTo("/", forceLoad: true);
     }
 }

@@ -7,4 +7,7 @@ public record PortfolioSummaryModel(
     decimal TotalGainLossPct,
     decimal TodayGainLoss,
     int HoldingCount,
-    IReadOnlyList<HoldingModel> Holdings);
+    IReadOnlyList<HoldingModel> Holdings,
+    string BaseCurrency,
+    decimal UsdIdrRate,
+    bool IsRateLive);

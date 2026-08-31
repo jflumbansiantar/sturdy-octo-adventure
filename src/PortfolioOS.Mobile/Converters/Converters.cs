@@ -156,3 +156,23 @@ public class ConfidenceTextConverter : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }
+
+/// <summary>
+/// Formats an amount the API has already converted into the portfolio's base currency.
+/// Distinct from <see cref="MoneyConverter"/>, which labels a value with the currency of the
+/// market it came from - pairing a base-currency total with a holding's native currency code
+/// is exactly how a rupiah figure ends up wearing a dollar sign.
+/// </summary>
+public class BaseMoneyConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => value switch
+        {
+            decimal d => MoneyConverter.Format(d, "IDR"),
+            double dbl => MoneyConverter.Format((decimal)dbl, "IDR"),
+            _ => string.Empty
+        };
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}

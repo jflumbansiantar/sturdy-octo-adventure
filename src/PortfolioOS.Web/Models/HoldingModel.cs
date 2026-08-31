@@ -11,7 +11,7 @@ public record HoldingModel(
     decimal AvgCost,
     decimal CurrentPrice,
     decimal PreviousClose,
-    string? Currency,
+    string? PriceCurrency,
     decimal CostBasis,
     decimal MarketValue,
     decimal GainLoss,

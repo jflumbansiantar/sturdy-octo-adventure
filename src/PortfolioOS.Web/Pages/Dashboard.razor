@@ -102,7 +102,7 @@
             <MudTd>@context.Date.ToString("dd MMM yyyy")</MudTd>
             <MudTd>@context.Category</MudTd>
             <MudTd>@context.Name</MudTd>
-            <MudTd Style="text-align:right">@AppState.FormatValue(context.Total)</MudTd>
+            <MudTd Style="text-align:right">@AppState.FormatMarketValue(context.Total, context.Market)</MudTd>
         </RowTemplate>
     </MudTable>
 </MudPaper>

@@ -75,10 +75,7 @@
                                 <VerticalStackLayout Grid.Column="1" HorizontalOptions="End">
                                     <Label TextColor="White" FontSize="14" HorizontalTextAlignment="End">
                                         <Label.Text>
-                                            <MultiBinding Converter="{StaticResource MoneyConverter}">
-                                                <Binding Path="MarketValue" />
-                                                <Binding Path="Currency" />
-                                            </MultiBinding>
+                                            <Binding Path="MarketValue" Converter="{StaticResource BaseMoneyConverter}" />
                                         </Label.Text>
                                     </Label>
                                     <Label Text="{Binding GainLossPct, StringFormat='{0:F2}%'}"

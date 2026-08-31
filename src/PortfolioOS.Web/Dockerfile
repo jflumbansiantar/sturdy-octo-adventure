@@ -6,10 +6,13 @@ WORKDIR /src
 
 COPY ["src/PortfolioOS.Web/PortfolioOS.Web.csproj", "src/PortfolioOS.Web/"]
 COPY ["src/PortfolioOS.Shared/PortfolioOS.Shared.csproj", "src/PortfolioOS.Shared/"]
+# Shared references Domain for the enums its document parsers map onto.
+COPY ["src/PortfolioOS.Domain/PortfolioOS.Domain.csproj", "src/PortfolioOS.Domain/"]
 RUN dotnet restore "src/PortfolioOS.Web/PortfolioOS.Web.csproj"
 
 COPY src/PortfolioOS.Web/ src/PortfolioOS.Web/
 COPY src/PortfolioOS.Shared/ src/PortfolioOS.Shared/
+COPY src/PortfolioOS.Domain/ src/PortfolioOS.Domain/
 
 WORKDIR /src/src/PortfolioOS.Web
 RUN dotnet publish -c Release -o /app/publish --no-restore

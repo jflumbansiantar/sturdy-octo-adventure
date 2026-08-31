@@ -5,7 +5,7 @@ public record LoginResponse(string Token, DateTimeOffset ExpiresAt);
 public record HoldingModel(
     Guid Id, string Ticker, string Name, string Type, string SubType, string Market,
     decimal Shares, decimal AvgCost, decimal CurrentPrice, decimal PreviousClose,
-    string? Currency, decimal CostBasis, decimal MarketValue,
+    string? PriceCurrency, decimal CostBasis, decimal MarketValue,
     decimal GainLoss, decimal GainLossPct,
     decimal DayChange, decimal DayChangePct, decimal DayGainLoss,
     DateTimeOffset? PriceUpdatedAt);
@@ -17,7 +17,8 @@ public record TransactionModel(
 public record PortfolioSummaryModel(
     decimal TotalValue, decimal TotalCostBasis, decimal TotalGainLoss,
     decimal TotalGainLossPct, decimal TodayGainLoss, int HoldingCount,
-    List<HoldingModel> Holdings);
+    List<HoldingModel> Holdings,
+    string BaseCurrency, decimal UsdIdrRate, bool IsRateLive);
 
 public record DebtModel(
     Guid Id, string Name, string Type, decimal Balance, decimal InterestRate,
