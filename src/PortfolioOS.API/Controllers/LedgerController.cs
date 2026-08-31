@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using PortfolioOS.API.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PortfolioOS.Application.Ledger.Commands.CreateAccount;
 using PortfolioOS.Application.Ledger.Commands.CreateJournalEntry;
@@ -11,7 +12,7 @@ using PortfolioOS.Application.Ledger.Queries.GetLedgerSummary;
 
 namespace PortfolioOS.API.Controllers;
 
-[Authorize]
+[Authorize(Policy = PortfolioPolicies.Read)]
 [ApiController]
 [Route("api/ledger")]
 public class LedgerController(IMediator mediator) : ControllerBase
@@ -20,6 +21,7 @@ public class LedgerController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> GetAccounts(CancellationToken ct)
         => Ok(await mediator.Send(new GetAccountsQuery(), ct));
 
+    [Authorize(Policy = PortfolioPolicies.Write)]
     [HttpPost("accounts")]
     public async Task<IActionResult> CreateAccount([FromBody] CreateAccountCommand cmd, CancellationToken ct)
     {
@@ -27,6 +29,7 @@ public class LedgerController(IMediator mediator) : ControllerBase
         return Created($"api/ledger/accounts/{cmd.Id}", new { id = cmd.Id });
     }
 
+    [Authorize(Policy = PortfolioPolicies.Write)]
     [HttpPatch("accounts/{id}")]
     public async Task<IActionResult> UpdateAccount(string id, [FromBody] UpdateAccountCommand cmd, CancellationToken ct)
     {
@@ -41,6 +44,7 @@ public class LedgerController(IMediator mediator) : ControllerBase
         CancellationToken ct)
         => Ok(await mediator.Send(new GetEntriesQuery(from, to), ct));
 
+    [Authorize(Policy = PortfolioPolicies.Write)]
     [HttpPost("entries")]
     public async Task<IActionResult> CreateEntry([FromBody] CreateJournalEntryCommand cmd, CancellationToken ct)
     {
@@ -48,6 +52,7 @@ public class LedgerController(IMediator mediator) : ControllerBase
         return Created($"api/ledger/entries/{cmd.Id}", new { id = cmd.Id });
     }
 
+    [Authorize(Policy = PortfolioPolicies.Write)]
     [HttpDelete("entries/{id}")]
     public async Task<IActionResult> DeleteEntry(string id, CancellationToken ct)
     {

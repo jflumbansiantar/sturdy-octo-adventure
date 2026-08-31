@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>@ViewData["Title"] — PortfolioOS Identity</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+</head>
+<body>
+<div class="shell">
+    <header class="brand">
+        <span class="brand-mark">P</span>
+        <span class="brand-text">PortfolioOS <small>Identity</small></span>
+    </header>
+
+    <main class="card">
+        @RenderBody()
+    </main>
+
+    <footer class="foot">
+        Layanan autentikasi &amp; otorisasi PortfolioOS
+    </footer>
+</div>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

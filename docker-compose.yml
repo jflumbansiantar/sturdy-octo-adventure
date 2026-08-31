@@ -9,9 +9,40 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # Membuat database kedua (portfolioos_identity) saat volume pertama kali dibuat.
+      - ./database/init-identity-db.sql:/docker-entrypoint-initdb.d/10-init-identity-db.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d portfolioos"]
       interval: 5s
+      timeout: 5s
+      retries: 10
+
+  identity:
+    build:
+      context: .
+      dockerfile: src/PortfolioOS.Identity/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__IdentityConnection: "Host=postgres;Port=5432;Database=portfolioos_identity;Username=postgres;Password=postgres"
+      # Issuer harus memakai alamat yang dilihat browser, bukan nama service internal,
+      # supaya redirect OIDC dan validasi token di API cocok.
+      IdentityServer__IssuerUri: "http://localhost:5244"
+      IdentityServer__PublicOrigin: "http://localhost:5244"
+      IdentityServer__MetadataAddress: "http://localhost:8080/.well-known/openid-configuration"
+      Clients__WebBaseUrl: "http://localhost:8081"
+      Clients__ApiBaseUrl: "http://localhost:5243"
+      Clients__EnableLegacyPasswordClient: "true"
+      Clients__LegacyClientSecret: "legacy-secret-change-me"
+      Clients__JobsClientSecret: "jobs-secret-change-me"
+      Cookie__SameSite: "Lax"
+    ports:
+      - "5244:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health || exit 1"]
+      interval: 10s
       timeout: 5s
       retries: 10
 
@@ -22,6 +53,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      identity:
+        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=portfolioos;Username=postgres;Password=postgres"
@@ -31,6 +64,11 @@ services:
       Jwt__ExpiryHours: "24"
       Auth__Username: admin
       Auth__Password: password
+      Auth__AllowLegacyTokens: "true"
+      IdentityServer__Authority: "http://localhost:5244"
+      IdentityServer__MetadataAddress: "http://identity:8080/.well-known/openid-configuration"
+      IdentityServer__Audience: portfolioos-api
+      IdentityServer__RequireHttpsMetadata: "false"
       Cors__AllowedOrigins__0: "http://localhost:8081"
     ports:
       - "5243:8080"

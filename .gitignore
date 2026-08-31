@@ -46,6 +46,7 @@ desktop.ini
 
 # Local secrets
 appsettings.Development.local.json
+tempkey.jwk
 *.pfx
 *.p12
 secrets.json

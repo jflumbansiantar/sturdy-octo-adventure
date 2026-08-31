@@ -9,13 +9,8 @@ namespace PortfolioOS.Mobile.ViewModels;
 public partial class DashboardViewModel : ObservableObject
 {
     private readonly ApiClient _api;
-    private readonly AuthService _auth;
 
-    public DashboardViewModel(ApiClient api, AuthService auth)
-    {
-        _api = api;
-        _auth = auth;
-    }
+    public DashboardViewModel(ApiClient api) => _api = api;
 
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private decimal _totalValue;
@@ -97,12 +92,5 @@ public partial class DashboardViewModel : ObservableObject
         {
             IsLoading = false;
         }
-    }
-
-    [RelayCommand]
-    private async Task LogoutAsync()
-    {
-        _auth.ClearToken();
-        await Shell.Current.GoToAsync("//login");
     }
 }

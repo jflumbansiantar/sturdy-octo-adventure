@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using PortfolioOS.API.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PortfolioOS.Application.Transactions.Commands.CreateTransaction;
 using PortfolioOS.Application.Transactions.Commands.DeleteTransaction;
@@ -8,7 +9,7 @@ using PortfolioOS.Domain.Enums;
 
 namespace PortfolioOS.API.Controllers;
 
-[Authorize]
+[Authorize(Policy = PortfolioPolicies.Read)]
 [ApiController]
 [Route("api/transactions")]
 public class TransactionsController(IMediator mediator) : ControllerBase
@@ -21,6 +22,7 @@ public class TransactionsController(IMediator mediator) : ControllerBase
         CancellationToken ct)
         => Ok(await mediator.Send(new GetTransactionsQuery(category, from, to), ct));
 
+    [Authorize(Policy = PortfolioPolicies.Write)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateTransactionCommand cmd, CancellationToken ct)
     {
@@ -28,6 +30,7 @@ public class TransactionsController(IMediator mediator) : ControllerBase
         return CreatedAtAction(nameof(GetAll), new { id }, new { id });
     }
 
+    [Authorize(Policy = PortfolioPolicies.Write)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {

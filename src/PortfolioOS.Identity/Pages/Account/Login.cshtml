@@ -1,0 +1,30 @@
+@page
+@model PortfolioOS.Identity.Pages.Account.LoginModel
+@{
+    ViewData["Title"] = "Masuk";
+}
+
+<h1>Masuk</h1>
+<p class="sub">Gunakan akun PortfolioOS Anda untuk melanjutkan.</p>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert">@Model.ErrorMessage</div>
+}
+
+<form method="post">
+    <input type="hidden" asp-for="Input.ReturnUrl"/>
+
+    <label asp-for="Input.Username">Email</label>
+    <input asp-for="Input.Username" type="text" autocomplete="username" autofocus/>
+
+    <label asp-for="Input.Password">Password</label>
+    <input asp-for="Input.Password" type="password" autocomplete="current-password"/>
+
+    <div class="check">
+        <input asp-for="Input.RememberMe" type="checkbox"/>
+        <label asp-for="Input.RememberMe">Ingat saya</label>
+    </div>
+
+    <button type="submit">Masuk</button>
+</form>

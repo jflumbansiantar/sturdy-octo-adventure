@@ -1,12 +1,13 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using PortfolioOS.API.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PortfolioOS.Application.MarketData.Queries.GetExchangeRate;
 using PortfolioOS.Application.MarketData.Queries.GetLiveQuotes;
 
 namespace PortfolioOS.API.Controllers;
 
-[Authorize]
+[Authorize(Policy = PortfolioPolicies.Read)]
 [ApiController]
 [Route("api/market")]
 public class MarketController(IMediator mediator) : ControllerBase

@@ -1,0 +1,28 @@
+@page
+@model PortfolioOS.Identity.Pages.Account.LogoutModel
+@{
+    ViewData["Title"] = "Keluar";
+}
+
+@if (Model.SignedOut)
+{
+    <h1>Anda sudah keluar</h1>
+    <p class="sub">Sesi PortfolioOS Anda pada perangkat ini telah diakhiri.</p>
+    <a href="~/"><button type="button" class="secondary">Kembali ke beranda</button></a>
+}
+else
+{
+    <h1>Keluar dari PortfolioOS?</h1>
+    <p class="sub">
+        @if (!string.IsNullOrEmpty(Model.ClientName))
+        {
+            <text>Permintaan berasal dari <strong>@Model.ClientName</strong>.</text>
+        }
+        Anda akan keluar dari semua aplikasi yang memakai sesi ini.
+    </p>
+
+    <form method="post">
+        <input type="hidden" asp-for="LogoutId"/>
+        <button type="submit">Ya, keluar</button>
+    </form>
+}

@@ -1,7 +1,5 @@
-using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+using PortfolioOS.API.Authorization;
 using PortfolioOS.API.Middleware;
 using PortfolioOS.Application;
 using PortfolioOS.Infrastructure;
@@ -21,10 +19,14 @@ builder.Services.AddControllers()
     });
 
 // Swagger
+var identityAuthority = builder.Configuration["IdentityServer:Authority"];
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "PortfolioOS API", Version = "v1" });
+
+    // Tombol "Authorize" tetap menerima token yang ditempel manual (jalur lama).
     c.AddSecurityDefinition("Bearer", new()
     {
         Name = "Authorization",
@@ -40,26 +42,45 @@ builder.Services.AddSwaggerGen(c =>
             []
         }
     });
+
+    if (!string.IsNullOrWhiteSpace(identityAuthority))
+    {
+        var authority = identityAuthority.TrimEnd('/');
+
+        c.AddSecurityDefinition("oauth2", new()
+        {
+            Type = Microsoft.OpenApi.Models.SecuritySchemeType.OAuth2,
+            Flows = new()
+            {
+                AuthorizationCode = new()
+                {
+                    AuthorizationUrl = new Uri($"{authority}/connect/authorize"),
+                    TokenUrl = new Uri($"{authority}/connect/token"),
+                    Scopes = new Dictionary<string, string>
+                    {
+                        ["openid"] = "Identitas dasar",
+                        ["profile"] = "Profil pengguna",
+                        ["roles"] = "Role pengguna",
+                        [PortfolioPolicies.Scopes.Read] = "Baca data portofolio",
+                        [PortfolioPolicies.Scopes.Write] = "Ubah data portofolio",
+                        [PortfolioPolicies.Scopes.Admin] = "Administrasi",
+                    },
+                },
+            },
+        });
+        c.AddSecurityRequirement(new()
+        {
+            {
+                new() { Reference = new() { Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme, Id = "oauth2" } },
+                ["openid", "profile", "roles", PortfolioPolicies.Scopes.Read, PortfolioPolicies.Scopes.Write]
+            }
+        });
+    }
 });
 
-// JWT Authentication
-var jwtSecret = builder.Configuration["Jwt:Secret"]!;
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(o =>
-    {
-        o.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
-        };
-    });
-
-builder.Services.AddAuthorization();
+// Autentikasi: token PortfolioOS.Identity (OIDC) dan/atau token HS256 lama.
+// Policy berbasis scope didaftarkan sekalian di sini.
+builder.Services.AddPortfolioAuthentication(builder.Configuration, builder.Environment);
 
 // CORS
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
@@ -84,7 +105,14 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        if (string.IsNullOrWhiteSpace(identityAuthority)) return;
+
+        c.OAuthClientId("portfolioos-swagger");
+        c.OAuthAppName("PortfolioOS API - Swagger UI");
+        c.OAuthUsePkce();
+    });
 }
 
 app.UseHttpsRedirection();

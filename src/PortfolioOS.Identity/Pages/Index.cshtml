@@ -1,0 +1,25 @@
+@page
+@model PortfolioOS.Identity.Pages.IndexModel
+@{
+    ViewData["Title"] = "Beranda";
+}
+
+<h1>PortfolioOS Identity</h1>
+<p class="sub">Layanan autentikasi dan otorisasi terpusat (OpenID Connect / OAuth 2.0).</p>
+
+<ul class="plain">
+    <li><span class="meta">Issuer</span><br/><code>@Model.Issuer</code></li>
+    <li><span class="meta">Discovery</span><br/><code>@Model.Issuer/.well-known/openid-configuration</code></li>
+    <li><span class="meta">Environment</span><br/><code>@Model.Environment</code></li>
+</ul>
+
+<p class="meta" style="margin-top:20px">
+    @if (Model.IsAuthenticated)
+    {
+        <text>Masuk sebagai <strong>@Model.UserName</strong>. <a href="/Account/Logout">Keluar</a></text>
+    }
+    else
+    {
+        <a href="/Account/Login">Masuk</a>
+    }
+</p>
