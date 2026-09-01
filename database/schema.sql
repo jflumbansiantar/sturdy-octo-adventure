@@ -1,7 +1,31 @@
 -- =============================================================
 -- PortfolioOS — PostgreSQL Schema
--- Target: .NET Rebuild (EF Core + CQRS)
+-- Target: .NET (EF Core + CQRS)
+--
+-- Tiga database terpisah:
+--   1. portfolioos           — data bisnis, dibuat EF Core migrations milik
+--                              PortfolioOS.Infrastructure (Persistence/Migrations).
+--   2. portfolioos_identity  — user/role + operational store Duende IdentityServer,
+--                              dibuat EF Core migrations milik PortfolioOS.Identity.
+--                              Lihat bagian "DATABASE IDENTITY" di bagian bawah file.
+--   3. portfolioos_admin     — setting web milik microservice admin, dibuat EF Core
+--                              migrations milik PortfolioOS.Admin.
+--                              Lihat bagian "DATABASE ADMIN" di akhir file.
+--
+-- File ini adalah DDL referensi yang mencerminkan hasil migrations — dipakai untuk
+-- membaca struktur tanpa membuka file migration, bukan sebagai jalur deployment.
+-- Kalau entity atau konfigurasi berubah, tambahkan migration lalu selaraskan file ini.
+--
+-- Dua perbedaan yang disengaja terhadap hasil migrations:
+--   * nama constraint primary key di sini memakai default Postgres (<tabel>_pkey),
+--     sedangkan EF Core menamainya PK_<tabel>;
+--   * blok VIEWS di bawah tidak dibuat migrations — lihat catatan di sana.
 -- =============================================================
+
+
+-- #############################################################
+-- DATABASE BISNIS: portfolioos
+-- #############################################################
 
 -- =============================================================
 -- ENUM TYPES
@@ -59,6 +83,23 @@ CREATE TYPE currency_type AS ENUM (
 );
 
 
+-- -------------------------------------------------------------
+-- CAST text -> enum
+-- Npgsql mengirim nilai enum yang dikonversi ke string sebagai parameter `text`,
+-- dan Postgres tidak punya cast bawaan text -> enum. Cast assignment di bawah
+-- memakai fungsi input tiap enum supaya parameter string bisa langsung
+-- di-INSERT/UPDATE ke kolom enum.
+-- -------------------------------------------------------------
+CREATE CAST (text AS holding_type)         WITH INOUT AS ASSIGNMENT;
+CREATE CAST (text AS market_type)          WITH INOUT AS ASSIGNMENT;
+CREATE CAST (text AS transaction_category) WITH INOUT AS ASSIGNMENT;
+CREATE CAST (text AS account_type)         WITH INOUT AS ASSIGNMENT;
+CREATE CAST (text AS normal_balance_type)  WITH INOUT AS ASSIGNMENT;
+CREATE CAST (text AS debt_type)            WITH INOUT AS ASSIGNMENT;
+CREATE CAST (text AS debt_status)          WITH INOUT AS ASSIGNMENT;
+CREATE CAST (text AS currency_type)        WITH INOUT AS ASSIGNMENT;
+
+
 -- =============================================================
 -- TABLES
 -- =============================================================
@@ -77,9 +118,7 @@ CREATE TABLE holdings (
     shares      NUMERIC(18, 8)  NOT NULL CHECK (shares >= 0),
     avg_cost    NUMERIC(18, 6)  NOT NULL CHECK (avg_cost >= 0),
     created_at  TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
-
-    CONSTRAINT uq_holdings_ticker UNIQUE (ticker)
+    updated_at  TIMESTAMPTZ     NOT NULL DEFAULT NOW()
 );
 
 -- -------------------------------------------------------------
@@ -148,7 +187,7 @@ CREATE TABLE journal_entries (
 CREATE TABLE journal_lines (
     id          UUID            NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
     entry_id    VARCHAR(20)     NOT NULL REFERENCES journal_entries(id) ON DELETE CASCADE,
-    account_id  VARCHAR(20)     NOT NULL REFERENCES ledger_accounts(id),
+    account_id  VARCHAR(20)     NOT NULL REFERENCES ledger_accounts(id) ON DELETE CASCADE,
     debit       NUMERIC(18, 6)  NOT NULL DEFAULT 0 CHECK (debit >= 0),
     credit      NUMERIC(18, 6)  NOT NULL DEFAULT 0 CHECK (credit >= 0),
 
@@ -198,11 +237,12 @@ CREATE TABLE app_settings (
 -- =============================================================
 
 -- holdings
+CREATE UNIQUE INDEX uq_holdings_ticker ON holdings(ticker);
 CREATE INDEX idx_holdings_market   ON holdings(market);
 CREATE INDEX idx_holdings_type     ON holdings(type);
 
 -- transactions
-CREATE INDEX idx_transactions_date      ON transactions(date DESC);
+CREATE INDEX idx_transactions_date      ON transactions(date);
 CREATE INDEX idx_transactions_category  ON transactions(category);
 CREATE INDEX idx_transactions_name      ON transactions(name);
 CREATE INDEX idx_transactions_market    ON transactions(market);
@@ -212,7 +252,7 @@ CREATE INDEX idx_journal_lines_entry_id   ON journal_lines(entry_id);
 CREATE INDEX idx_journal_lines_account_id ON journal_lines(account_id);
 
 -- journal_entries
-CREATE INDEX idx_journal_entries_date ON journal_entries(date DESC);
+CREATE INDEX idx_journal_entries_date ON journal_entries(date);
 
 -- debts
 CREATE INDEX idx_debts_status ON debts(status);
@@ -264,7 +304,13 @@ CREATE TRIGGER trg_price_caches_updated_at
 
 
 -- =============================================================
--- VIEWS (computed fields — menggantikan logic di service layer)
+-- VIEWS (computed fields)
+--
+-- CATATAN: view di bawah TIDAK dibuat EF Core migrations, jadi tidak ada di
+-- database hasil `dotnet ef database update` maupun di container docker. Field
+-- turunan yang sama dihitung di Application layer (handler CQRS). View ini
+-- disimpan sebagai dokumentasi rumusnya + alat bantu query manual; kalau mau
+-- dipakai aplikasi, buat migration tersendiri untuk membuatnya.
 -- =============================================================
 
 -- v_holdings_enriched: holdings dengan data price dari cache
@@ -352,3 +398,242 @@ LEFT JOIN (
     WHERE category = 'DEBT'
     GROUP BY name
 ) t ON t.name = d.name;
+
+
+-- #############################################################
+-- DATABASE IDENTITY: portfolioos_identity
+--
+-- Database terpisah milik microservice PortfolioOS.Identity. Dibuat oleh dua
+-- DbContext berbeda dan otomatis di-migrate saat service start:
+--
+--   PortfolioIdentityDbContext  -> store user & role (ASP.NET Core Identity)
+--   PersistedGrantDbContext     -> operational store Duende IdentityServer 7
+--
+-- Identifier PascalCase sengaja di-quote: EF Core membuat kolom (dan tabel milik
+-- Duende) persis dengan casing tersebut, bukan lower case seperti tabel bisnis.
+--
+-- Jalankan bagian ini setelah connect ke database yang benar:
+--   CREATE DATABASE portfolioos_identity;
+--   \connect portfolioos_identity
+-- #############################################################
+
+-- -------------------------------------------------------------
+-- roles / users
+-- IdentityRole<Guid> dan IdentityUser<Guid> plus kolom tambahan PortfolioOS:
+-- Description pada role; DisplayName, PreferredCurrency, CreatedAt, LastLoginAt,
+-- IsActive pada user. DisplayName/PreferredCurrency ikut jadi claim di access token.
+-- -------------------------------------------------------------
+CREATE TABLE roles (
+    "Id"                UUID            NOT NULL PRIMARY KEY,
+    "Description"       VARCHAR(256)    NOT NULL,
+    "Name"              VARCHAR(256)    NULL,
+    "NormalizedName"    VARCHAR(256)    NULL,
+    "ConcurrencyStamp"  TEXT            NULL
+);
+
+CREATE TABLE users (
+    "Id"                    UUID            NOT NULL PRIMARY KEY,
+    "DisplayName"           VARCHAR(128)    NOT NULL,
+    "PreferredCurrency"     VARCHAR(3)      NOT NULL,
+    "CreatedAt"             TIMESTAMPTZ     NOT NULL,
+    "LastLoginAt"           TIMESTAMPTZ     NULL,
+    "IsActive"              BOOLEAN         NOT NULL,
+    "UserName"              VARCHAR(256)    NULL,
+    "NormalizedUserName"    VARCHAR(256)    NULL,
+    "Email"                 VARCHAR(256)    NULL,
+    "NormalizedEmail"       VARCHAR(256)    NULL,
+    "EmailConfirmed"        BOOLEAN         NOT NULL,
+    "PasswordHash"          TEXT            NULL,
+    "SecurityStamp"         TEXT            NULL,
+    "ConcurrencyStamp"      TEXT            NULL,
+    "PhoneNumber"           TEXT            NULL,
+    "PhoneNumberConfirmed"  BOOLEAN         NOT NULL,
+    "TwoFactorEnabled"      BOOLEAN         NOT NULL,
+    "LockoutEnd"            TIMESTAMPTZ     NULL,
+    "LockoutEnabled"        BOOLEAN         NOT NULL,
+    "AccessFailedCount"     INTEGER         NOT NULL
+);
+
+CREATE TABLE role_claims (
+    "Id"         INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    "RoleId"     UUID    NOT NULL REFERENCES roles("Id") ON DELETE CASCADE,
+    "ClaimType"  TEXT    NULL,
+    "ClaimValue" TEXT    NULL
+);
+
+CREATE TABLE user_claims (
+    "Id"         INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    "UserId"     UUID    NOT NULL REFERENCES users("Id") ON DELETE CASCADE,
+    "ClaimType"  TEXT    NULL,
+    "ClaimValue" TEXT    NULL
+);
+
+CREATE TABLE user_logins (
+    "LoginProvider"       TEXT NOT NULL,
+    "ProviderKey"         TEXT NOT NULL,
+    "ProviderDisplayName" TEXT NULL,
+    "UserId"              UUID NOT NULL REFERENCES users("Id") ON DELETE CASCADE,
+
+    PRIMARY KEY ("LoginProvider", "ProviderKey")
+);
+
+CREATE TABLE user_roles (
+    "UserId" UUID NOT NULL REFERENCES users("Id") ON DELETE CASCADE,
+    "RoleId" UUID NOT NULL REFERENCES roles("Id") ON DELETE CASCADE,
+
+    PRIMARY KEY ("UserId", "RoleId")
+);
+
+CREATE TABLE user_tokens (
+    "UserId"        UUID NOT NULL REFERENCES users("Id") ON DELETE CASCADE,
+    "LoginProvider" TEXT NOT NULL,
+    "Name"          TEXT NOT NULL,
+    "Value"         TEXT NULL,
+
+    PRIMARY KEY ("UserId", "LoginProvider", "Name")
+);
+
+CREATE UNIQUE INDEX "RoleNameIndex"         ON roles("NormalizedName");
+CREATE UNIQUE INDEX "UserNameIndex"         ON users("NormalizedUserName");
+CREATE INDEX        "EmailIndex"            ON users("NormalizedEmail");
+CREATE INDEX        "IX_role_claims_RoleId" ON role_claims("RoleId");
+CREATE INDEX        "IX_user_claims_UserId" ON user_claims("UserId");
+CREATE INDEX        "IX_user_logins_UserId" ON user_logins("UserId");
+CREATE INDEX        "IX_user_roles_RoleId"  ON user_roles("RoleId");
+
+
+-- -------------------------------------------------------------
+-- Operational store Duende IdentityServer (PersistedGrantDbContext)
+-- Refresh token, authorization code, consent, device flow, server-side session,
+-- pushed authorization request, dan signing key yang dikelola IdentityServer.
+-- Client/scope/resource TIDAK disimpan di sini — semuanya in-memory di
+-- PortfolioOS.Identity/Config/IdentityServerConfig.cs.
+-- -------------------------------------------------------------
+CREATE TABLE "PersistedGrants" (
+    "Id"           BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    "Key"          VARCHAR(200)    NULL,
+    "Type"         VARCHAR(50)     NOT NULL,
+    "SubjectId"    VARCHAR(200)    NULL,
+    "SessionId"    VARCHAR(100)    NULL,
+    "ClientId"     VARCHAR(200)    NOT NULL,
+    "Description"  VARCHAR(200)    NULL,
+    "CreationTime" TIMESTAMPTZ     NOT NULL,
+    "Expiration"   TIMESTAMPTZ     NULL,
+    "ConsumedTime" TIMESTAMPTZ     NULL,
+    "Data"         VARCHAR(50000)  NOT NULL
+);
+
+CREATE TABLE "DeviceCodes" (
+    "UserCode"     VARCHAR(200)    NOT NULL PRIMARY KEY,
+    "DeviceCode"   VARCHAR(200)    NOT NULL,
+    "SubjectId"    VARCHAR(200)    NULL,
+    "SessionId"    VARCHAR(100)    NULL,
+    "ClientId"     VARCHAR(200)    NOT NULL,
+    "Description"  VARCHAR(200)    NULL,
+    "CreationTime" TIMESTAMPTZ     NOT NULL,
+    "Expiration"   TIMESTAMPTZ     NOT NULL,
+    "Data"         VARCHAR(50000)  NOT NULL
+);
+
+CREATE TABLE "Keys" (
+    "Id"                TEXT         NOT NULL PRIMARY KEY,
+    "Version"           INTEGER      NOT NULL,
+    "Created"           TIMESTAMPTZ  NOT NULL,
+    "Use"               TEXT         NULL,
+    "Algorithm"         VARCHAR(100) NOT NULL,
+    "IsX509Certificate" BOOLEAN      NOT NULL,
+    "DataProtected"     BOOLEAN      NOT NULL,
+    "Data"              TEXT         NOT NULL
+);
+
+CREATE TABLE "ServerSideSessions" (
+    "Id"          BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    "Key"         VARCHAR(100) NOT NULL,
+    "Scheme"      VARCHAR(100) NOT NULL,
+    "SubjectId"   VARCHAR(100) NOT NULL,
+    "SessionId"   VARCHAR(100) NULL,
+    "DisplayName" VARCHAR(100) NULL,
+    "Created"     TIMESTAMPTZ  NOT NULL,
+    "Renewed"     TIMESTAMPTZ  NOT NULL,
+    "Expires"     TIMESTAMPTZ  NULL,
+    "Data"        TEXT         NOT NULL
+);
+
+CREATE TABLE "PushedAuthorizationRequests" (
+    "Id"                 BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    "ReferenceValueHash" VARCHAR(64)  NOT NULL,
+    "ExpiresAtUtc"       TIMESTAMPTZ  NOT NULL,
+    "Parameters"         TEXT         NOT NULL
+);
+
+CREATE UNIQUE INDEX "IX_PersistedGrants_Key"                      ON "PersistedGrants"("Key");
+CREATE INDEX        "IX_PersistedGrants_Expiration"               ON "PersistedGrants"("Expiration");
+CREATE INDEX        "IX_PersistedGrants_ConsumedTime"             ON "PersistedGrants"("ConsumedTime");
+CREATE INDEX        "IX_PersistedGrants_SubjectId_ClientId_Type"  ON "PersistedGrants"("SubjectId", "ClientId", "Type");
+CREATE INDEX        "IX_PersistedGrants_SubjectId_SessionId_Type" ON "PersistedGrants"("SubjectId", "SessionId", "Type");
+
+CREATE UNIQUE INDEX "IX_DeviceCodes_DeviceCode" ON "DeviceCodes"("DeviceCode");
+CREATE INDEX        "IX_DeviceCodes_Expiration" ON "DeviceCodes"("Expiration");
+
+CREATE INDEX        "IX_Keys_Use" ON "Keys"("Use");
+
+CREATE UNIQUE INDEX "IX_ServerSideSessions_Key"         ON "ServerSideSessions"("Key");
+CREATE INDEX        "IX_ServerSideSessions_Expires"     ON "ServerSideSessions"("Expires");
+CREATE INDEX        "IX_ServerSideSessions_SubjectId"   ON "ServerSideSessions"("SubjectId");
+CREATE INDEX        "IX_ServerSideSessions_SessionId"   ON "ServerSideSessions"("SessionId");
+CREATE INDEX        "IX_ServerSideSessions_DisplayName" ON "ServerSideSessions"("DisplayName");
+
+CREATE UNIQUE INDEX "IX_PushedAuthorizationRequests_ReferenceValueHash" ON "PushedAuthorizationRequests"("ReferenceValueHash");
+CREATE INDEX        "IX_PushedAuthorizationRequests_ExpiresAtUtc"       ON "PushedAuthorizationRequests"("ExpiresAtUtc");
+
+
+-- -------------------------------------------------------------
+-- Seed identity
+-- Role (admin, user, viewer) dan user awal dibuat IdentitySeeder saat service
+-- start, dibaca dari konfigurasi SeedUsers — bukan lewat SQL. Password di-hash
+-- ASP.NET Core Identity, jadi jangan meng-INSERT user manual di sini.
+-- -------------------------------------------------------------
+
+
+-- #############################################################
+-- DATABASE ADMIN: portfolioos_admin
+--
+-- Database terpisah milik microservice PortfolioOS.Admin. Isinya hanya setting yang
+-- benar-benar dimiliki service itu: hal-hal yang mengatur tampilan dan perilaku
+-- aplikasi web/admin.
+--
+-- Yang TIDAK ada di sini, dan memang bukan miliknya:
+--   * user & role       -> portfolioos_identity (PortfolioOS.Identity)
+--   * setting aplikasi  -> portfolioos.app_settings (PortfolioOS.API)
+-- Keduanya diakses admin service lewat HTTP dengan meneruskan token pemanggil,
+-- tidak pernah disalin ke database ini.
+--
+-- Jalankan bagian ini setelah connect ke database yang benar:
+--   CREATE DATABASE portfolioos_admin;
+--   \connect portfolioos_admin
+-- #############################################################
+
+-- -------------------------------------------------------------
+-- web_settings
+-- Nilai (value) dimiliki admin; sisanya metadata milik kode. WebSettingSeeder
+-- menyegarkan metadata tiap service start dan menambah key baru, tapi tidak pernah
+-- menimpa value yang sudah diubah. Key yang hilang dari kode ikut dihapus.
+--
+-- value_type menentukan editor di UI sekaligus validasi di server:
+--   string | text | bool | int | select   (select memakai kolom options)
+-- -------------------------------------------------------------
+CREATE TABLE web_settings (
+    key           VARCHAR(100)  PRIMARY KEY,
+    value         VARCHAR(2000) NOT NULL,
+    value_type    VARCHAR(20)   NOT NULL,
+    category      VARCHAR(50)   NOT NULL,
+    description   VARCHAR(500)  NOT NULL,
+    options       VARCHAR(500),                  -- pilihan sah untuk value_type = 'select', dipisah koma
+    default_value VARCHAR(2000) NOT NULL,        -- nilai bawaan dari kode, dipakai tombol reset
+    sort_order    INTEGER       NOT NULL,
+    created_at    TIMESTAMPTZ   NOT NULL,
+    updated_at    TIMESTAMPTZ   NOT NULL,
+    updated_by    VARCHAR(256)                   -- email admin terakhir; NULL selama masih nilai seed
+);
+
+CREATE INDEX ix_web_settings_category ON web_settings(category, sort_order);

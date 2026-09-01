@@ -1,0 +1,125 @@
+@page "/"
+@attribute [Authorize(Roles = "admin")]
+@inject AdminApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>Beranda – PortfolioOS Admin</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-1">Konsol Admin</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+    Manajemen pengguna dan pengaturan PortfolioOS. Halaman ini hanya bisa dibuka akun dengan role admin.
+</MudText>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-8" />
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Pengguna</MudText>
+                <MudText Typo="Typo.h4">@_users.Count</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Aktif</MudText>
+                <MudText Typo="Typo.h4" Color="Color.Success">@_users.Count(u => u.IsActive && !u.LockedOut)</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Administrator</MudText>
+                <MudText Typo="Typo.h4">@_users.Count(u => u.Roles.Contains("admin"))</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Nonaktif / Terkunci</MudText>
+                <MudText Typo="Typo.h4" Color="@(Blocked > 0 ? Color.Warning : Color.Default)">@Blocked</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="3">
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4 d-flex flex-column" Elevation="2" Style="height:100%">
+                <div class="d-flex align-center mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.People" Class="mr-2" />
+                    <MudText Typo="Typo.h6">Pengguna &amp; Role</MudText>
+                </div>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                    Data user disimpan di PortfolioOS.Identity. Dari sini Anda bisa membuat akun,
+                    mengganti role, menonaktifkan akses, dan mengatur ulang password.
+                </MudText>
+                <MudSpacer />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="align-self-start"
+                           EndIcon="@Icons.Material.Filled.ArrowForward"
+                           OnClick="@(() => Nav.NavigateTo("users"))">Kelola pengguna</MudButton>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4 d-flex flex-column" Elevation="2" Style="height:100%">
+                <div class="d-flex align-center mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mr-2" />
+                    <MudText Typo="Typo.h6">Pengaturan</MudText>
+                </div>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                    @_applicationSettingCount setting aplikasi (database bisnis) dan
+                    @_webSettings.Count setting web (database admin).
+                </MudText>
+                @if (ModifiedWebSettings > 0)
+                {
+                    <MudText Typo="Typo.body2" Class="mb-4">
+                        @ModifiedWebSettings setting web berbeda dari nilai bawaan.
+                    </MudText>
+                }
+                <MudSpacer />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="align-self-start"
+                           EndIcon="@Icons.Material.Filled.ArrowForward"
+                           OnClick="@(() => Nav.NavigateTo("settings"))">Buka pengaturan</MudButton>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private List<AdminUser> _users = [];
+    private List<WebSetting> _webSettings = [];
+    private int _applicationSettingCount;
+    private bool _loading = true;
+    private string? _error;
+
+    private int Blocked => _users.Count(u => !u.IsActive || u.LockedOut);
+    private int ModifiedWebSettings => _webSettings.Count(s => s.IsModified);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _users = await Api.GetUsersAsync();
+            _webSettings = await Api.GetWebSettingsAsync();
+
+            // Setting aplikasi datang dari service lain lagi; kalau API bisnis sedang mati
+            // sisa halaman tetap berguna, jadi kegagalannya tidak dinaikkan jadi error.
+            try { _applicationSettingCount = (await Api.GetApplicationSettingsAsync()).Count; }
+            catch (AdminApiException) { _applicationSettingCount = 0; }
+        }
+        catch (AdminApiException ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

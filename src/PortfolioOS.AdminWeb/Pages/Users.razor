@@ -1,0 +1,379 @@
+@page "/users"
+@attribute [Authorize(Roles = "admin")]
+@inject AdminApiClient Api
+@inject ISnackbar Snackbar
+
+<PageTitle>Pengguna – PortfolioOS Admin</PageTitle>
+
+<div class="d-flex align-center mb-4">
+    <div>
+        <MudText Typo="Typo.h5">Pengguna</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Sumber data: PortfolioOS.Identity</MudText>
+    </div>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd"
+               OnClick="OpenCreateDialog">Tambah Pengguna</MudButton>
+</div>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+
+<MudTextField @bind-Value="_search" Placeholder="Cari email, nama, atau role" Immediate="true"
+              Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" Clearable="true"
+              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+
+<MudTable Items="@Filtered" Dense="true" Hover="true" Loading="@_loading" Elevation="2">
+    <HeaderContent>
+        <MudTh>Email</MudTh>
+        <MudTh>Nama</MudTh>
+        <MudTh>Role</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Dibuat</MudTh>
+        <MudTh>Login Terakhir</MudTh>
+        <MudTh Style="text-align:right">Aksi</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>
+            <b>@context.Email</b>
+            @if (IsSelf(context))
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="ml-2">Anda</MudChip>
+            }
+        </MudTd>
+        <MudTd>@context.DisplayName</MudTd>
+        <MudTd>
+            @foreach (var role in context.Roles)
+            {
+                <MudChip T="string" Size="Size.Small" Color="@RoleColor(role)">@role</MudChip>
+            }
+        </MudTd>
+        <MudTd>
+            <MudChip T="string" Size="Size.Small" Color="@StatusColor(context)">@context.StatusLabel</MudChip>
+        </MudTd>
+        <MudTd>@context.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</MudTd>
+        <MudTd>@FormatLastLogin(context)</MudTd>
+        <MudTd Style="text-align:right">
+            <MudIconButton Icon="@Icons.Material.Filled.ManageAccounts" Size="Size.Small" title="Ganti role"
+                           OnClick="@(() => OpenRolesDialog(context))" />
+            <MudIconButton Icon="@Icons.Material.Filled.Password" Size="Size.Small" title="Atur ulang password"
+                           OnClick="@(() => OpenPasswordDialog(context))" />
+            <MudIconButton Icon="@ActiveToggleIcon(context)" Color="@ActiveToggleColor(context)" Size="Size.Small"
+                           Disabled="@(IsSelf(context) && context.IsActive)"
+                           title="@ActiveToggleTitle(context)"
+                           OnClick="@(() => ToggleActiveAsync(context))" />
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>Tidak ada pengguna yang cocok.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@* --------------------------- Dialog: tambah pengguna --------------------------- *@
+<MudDialog @bind-Visible="_showCreate">
+    <TitleContent><MudText Typo="Typo.h6">Tambah Pengguna</MudText></TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_form.Email" Label="Email" Variant="Variant.Outlined" Class="mb-3"
+                      InputType="InputType.Email" />
+        <MudTextField @bind-Value="_form.DisplayName" Label="Nama tampilan" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="_form.Password" Label="Password" Variant="Variant.Outlined" Class="mb-1"
+                      InputType="InputType.Password" />
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-3">
+            Minimal 10 karakter, mengandung huruf besar, angka, dan karakter non-alfanumerik.
+        </MudText>
+        <MudSelect @bind-Value="_form.Role" Label="Role" Variant="Variant.Outlined" Class="mb-3">
+            @foreach (var role in _roles)
+            {
+                <MudSelectItem Value="@role.Name">@role.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect @bind-Value="_form.PreferredCurrency" Label="Mata uang" Variant="Variant.Outlined">
+            <MudSelectItem Value="@("IDR")">IDR</MudSelectItem>
+            <MudSelectItem Value="@("USD")">USD</MudSelectItem>
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showCreate = false)">Batal</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateAsync" Disabled="_saving">
+            Simpan
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* --------------------------- Dialog: ganti role --------------------------- *@
+<MudDialog @bind-Visible="_showRoles">
+    <TitleContent><MudText Typo="Typo.h6">Role — @_selected?.Email</MudText></TitleContent>
+    <DialogContent>
+        @foreach (var role in _roles)
+        {
+            <div class="mb-2">
+                <MudCheckBox T="bool" Label="@role.Name" Dense="true"
+                             Value="@_selectedRoles.Contains(role.Name)"
+                             ValueChanged="@(v => ToggleRole(role.Name, v))" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-8 d-block">@role.Description</MudText>
+            </div>
+        }
+
+        @if (_selectedRoles.Count == 0)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3">Pilih minimal satu role.</MudAlert>
+        }
+        else if (_selected is not null && IsSelf(_selected) && !_selectedRoles.Contains("admin"))
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3">
+                Melepas role admin dari akun sendiri akan mengunci Anda keluar dari konsol ini,
+                jadi permintaannya akan ditolak.
+            </MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showRoles = false)">Batal</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveRolesAsync"
+                   Disabled="@(_saving || _selectedRoles.Count == 0)">Simpan</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* --------------------------- Dialog: atur ulang password --------------------------- *@
+<MudDialog @bind-Visible="_showPassword">
+    <TitleContent><MudText Typo="Typo.h6">Atur Ulang Password — @_selected?.Email</MudText></TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_newPassword" Label="Password baru" Variant="Variant.Outlined"
+                      InputType="InputType.Password" Class="mb-3" />
+        <MudTextField @bind-Value="_confirmPassword" Label="Ulangi password" Variant="Variant.Outlined"
+                      InputType="InputType.Password" />
+        @if (_confirmPassword.Length > 0 && _newPassword != _confirmPassword)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3">Password tidak sama.</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showPassword = false)">Batal</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ResetPasswordAsync"
+                   Disabled="@(_saving || _newPassword.Length == 0 || _newPassword != _confirmPassword)">
+            Simpan
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    private List<AdminUser> _users = [];
+    private List<AdminRole> _roles = [];
+    private bool _loading = true;
+    private bool _saving;
+    private string? _error;
+    private string _search = "";
+    private Guid? _currentUserId;
+
+    private bool _showCreate;
+    private bool _showRoles;
+    private bool _showPassword;
+
+    private AdminUser? _selected;
+    private readonly List<string> _selectedRoles = [];
+    private string _newPassword = "";
+    private string _confirmPassword = "";
+    private CreateUserForm _form = new();
+
+    private IEnumerable<AdminUser> Filtered =>
+        string.IsNullOrWhiteSpace(_search)
+            ? _users
+            : _users.Where(u =>
+                u.Email.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                || u.DisplayName.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                || u.Roles.Any(r => r.Contains(_search, StringComparison.OrdinalIgnoreCase)));
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationStateTask is not null)
+        {
+            var state = await AuthenticationStateTask;
+
+            // MapInboundClaims dimatikan di sisi service, jadi subject tetap bernama "sub".
+            if (Guid.TryParse(state.User.FindFirst("sub")?.Value, out var id)) _currentUserId = id;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+        try
+        {
+            _users = await Api.GetUsersAsync();
+            if (_roles.Count == 0) _roles = await Api.GetRolesAsync();
+        }
+        catch (AdminApiException ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private bool IsSelf(AdminUser user) => _currentUserId == user.Id;
+
+    private static Color RoleColor(string role) => role == "admin" ? Color.Primary : Color.Default;
+
+    private static Color StatusColor(AdminUser user) => user switch
+    {
+        { IsActive: false } => Color.Error,
+        { LockedOut: true } => Color.Warning,
+        _ => Color.Success,
+    };
+
+    private static string FormatLastLogin(AdminUser user) => user.LastLoginAt is { } at
+        ? at.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+        : "—";
+
+    private static string ActiveToggleIcon(AdminUser user) =>
+        user.IsActive ? Icons.Material.Filled.Block : Icons.Material.Filled.CheckCircle;
+
+    private static Color ActiveToggleColor(AdminUser user) => user.IsActive ? Color.Error : Color.Success;
+
+    private string ActiveToggleTitle(AdminUser user)
+    {
+        if (!user.IsActive) return "Aktifkan";
+        return IsSelf(user) ? "Anda tidak bisa menonaktifkan akun sendiri" : "Nonaktifkan";
+    }
+
+    private void OpenCreateDialog()
+    {
+        _form = new CreateUserForm { Role = _roles.FirstOrDefault()?.Name ?? "user" };
+        _showCreate = true;
+    }
+
+    private void OpenRolesDialog(AdminUser user)
+    {
+        _selected = user;
+        _selectedRoles.Clear();
+        _selectedRoles.AddRange(user.Roles);
+        _showRoles = true;
+    }
+
+    private void OpenPasswordDialog(AdminUser user)
+    {
+        _selected = user;
+        _newPassword = "";
+        _confirmPassword = "";
+        _showPassword = true;
+    }
+
+    private void ToggleRole(string role, bool selected)
+    {
+        if (selected)
+        {
+            if (!_selectedRoles.Contains(role)) _selectedRoles.Add(role);
+        }
+        else
+        {
+            _selectedRoles.Remove(role);
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        _saving = true;
+        try
+        {
+            var created = await Api.CreateUserAsync(new CreateUserRequest(
+                _form.Email.Trim(),
+                _form.Password,
+                _form.DisplayName.Trim(),
+                _form.Role,
+                _form.PreferredCurrency));
+
+            _users = _users.Append(created).OrderBy(u => u.Email).ToList();
+            _showCreate = false;
+            Snackbar.Add($"Pengguna {created.Email} dibuat", Severity.Success);
+        }
+        catch (AdminApiException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task SaveRolesAsync()
+    {
+        if (_selected is null) return;
+
+        _saving = true;
+        try
+        {
+            Replace(await Api.SetRolesAsync(_selected.Id, [.. _selectedRoles]));
+            _showRoles = false;
+            Snackbar.Add($"Role {_selected.Email} diperbarui", Severity.Success);
+        }
+        catch (AdminApiException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task ToggleActiveAsync(AdminUser user)
+    {
+        try
+        {
+            var updated = await Api.SetActiveAsync(user.Id, !user.IsActive);
+            Replace(updated);
+            Snackbar.Add(
+                updated.IsActive ? $"{updated.Email} diaktifkan" : $"{updated.Email} dinonaktifkan",
+                Severity.Success);
+        }
+        catch (AdminApiException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task ResetPasswordAsync()
+    {
+        if (_selected is null) return;
+
+        _saving = true;
+        try
+        {
+            await Api.ResetPasswordAsync(_selected.Id, _newPassword);
+            _showPassword = false;
+            Snackbar.Add($"Password {_selected.Email} diatur ulang", Severity.Success);
+        }
+        catch (AdminApiException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Replace(AdminUser updated)
+    {
+        var index = _users.FindIndex(u => u.Id == updated.Id);
+        if (index >= 0) _users[index] = updated;
+    }
+
+    private class CreateUserForm
+    {
+        public string Email { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+        public string Password { get; set; } = "";
+        public string Role { get; set; } = "user";
+        public string PreferredCurrency { get; set; } = "IDR";
+    }
+}

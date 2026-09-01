@@ -66,3 +66,8 @@ tests/**/[Bb]in/
 tests/**/[Oo]bj/
 
 appsettings.json
+
+# Kecuali konfigurasi Blazor WASM: file ini ikut dipublish ke browser, jadi isinya
+# memang publik (URL service + client id OIDC) dan harus ikut ter-version.
+!src/PortfolioOS.Web/wwwroot/appsettings.json
+!src/PortfolioOS.AdminWeb/wwwroot/appsettings.json

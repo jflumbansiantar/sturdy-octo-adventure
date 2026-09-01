@@ -1,0 +1,41 @@
+@inject NavigationManager Nav
+
+<PageTitle>Akses ditolak – PortfolioOS Admin</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+    <MudPaper Class="pa-8" Elevation="4">
+        <div class="d-flex align-center mb-4">
+            <MudIcon Icon="@Icons.Material.Filled.GppBad" Color="Color.Error" Size="Size.Large" Class="mr-3" />
+            <MudText Typo="Typo.h5">Akses ditolak</MudText>
+        </div>
+
+        <MudText Class="mb-2">
+            Akun <b>@_name</b> berhasil login, tetapi konsol ini hanya untuk pengguna dengan role
+            <b>admin</b>.
+        </MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">
+            Minta administrator lain menambahkan role admin ke akun Anda, atau masuk dengan akun admin.
+        </MudText>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.SwitchAccount"
+                   OnClick="Logout">Keluar dan ganti akun</MudButton>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    private string _name = "ini";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationStateTask is null) return;
+
+        var state = await AuthenticationStateTask;
+        _name = state.User.Identity?.Name ?? "ini";
+    }
+
+    private void Logout() => Nav.NavigateToLogout("authentication/logout");
+}

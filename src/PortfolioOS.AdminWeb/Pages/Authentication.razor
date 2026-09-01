@@ -1,0 +1,23 @@
+@page "/authentication/{action}"
+
+<PageTitle>Autentikasi – PortfolioOS Admin</PageTitle>
+
+<RemoteAuthenticatorView Action="@Action">
+    <LoggingIn>
+        <MudText Class="ma-8">Mengalihkan ke halaman login…</MudText>
+    </LoggingIn>
+    <CompletingLoggingIn>
+        <MudText Class="ma-8">Menyelesaikan login…</MudText>
+    </CompletingLoggingIn>
+    <LogOut>
+        <MudText Class="ma-8">Mengeluarkan Anda…</MudText>
+    </LogOut>
+    <LogOutSucceeded>
+        <MudText Class="ma-8">Anda sudah keluar.</MudText>
+    </LogOutSucceeded>
+</RemoteAuthenticatorView>
+
+@code {
+    [Parameter]
+    public string? Action { get; set; }
+}

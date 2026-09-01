@@ -1,0 +1,46 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Nav
+
+<MudLayout>
+    <MudAppBar Elevation="1" Color="Color.Dark">
+        <AuthorizeView>
+            <Authorized>
+                <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                               OnClick="@(() => _drawerOpen = !_drawerOpen)" />
+            </Authorized>
+        </AuthorizeView>
+
+        <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Class="ml-2" />
+        <MudText Typo="Typo.h6" Class="ml-2">PortfolioOS Admin</MudText>
+
+        <MudSpacer />
+
+        <AuthorizeView>
+            <Authorized>
+                <MudText Typo="Typo.body2" Class="mr-3 d-none d-sm-flex">@context.User.Identity?.Name</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit"
+                               title="Keluar" OnClick="Logout" />
+            </Authorized>
+        </AuthorizeView>
+    </MudAppBar>
+
+    <AuthorizeView>
+        <Authorized>
+            <MudDrawer @bind-Open="_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Always">
+                <NavMenu />
+            </MudDrawer>
+        </Authorized>
+    </AuthorizeView>
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-4">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+
+    private void Logout() => Nav.NavigateToLogout("authentication/logout");
+}

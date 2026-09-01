@@ -1,0 +1,336 @@
+@page "/settings"
+@attribute [Authorize(Roles = "admin")]
+@inject AdminApiClient Api
+@inject ISnackbar Snackbar
+
+<PageTitle>Pengaturan – PortfolioOS Admin</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-1">Pengaturan</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+    Setting aplikasi tersimpan di database bisnis dan dibaca PortfolioOS.API; setting web
+    tersimpan di database admin service dan mengatur tampilan serta fitur aplikasi web.
+</MudText>
+
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" TabPanelsClass="pa-4">
+
+    @* --------------------------------- Setting web --------------------------------- *@
+    <MudTabPanel Text="Web" Icon="@Icons.Material.Filled.Web">
+        @if (_webError is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4">@_webError</MudAlert>
+        }
+
+        @if (_loadingWeb)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-8" />
+        }
+        else
+        {
+            <div class="d-flex align-center mb-4">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    @_webSettings.Count setting · @DirtyCount belum disimpan
+                </MudText>
+                <MudSpacer />
+                <MudButton Variant="Variant.Text" Class="mr-2" OnClick="DiscardDraft" Disabled="@(DirtyCount == 0)">
+                    Batalkan perubahan
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                           OnClick="SaveWebAsync" Disabled="@(_savingWeb || DirtyCount == 0)">
+                    Simpan
+                </MudButton>
+            </div>
+
+            @foreach (var group in _webSettings.GroupBy(s => s.Category))
+            {
+                <MudPaper Class="pa-4 mb-4" Elevation="1">
+                    <MudText Typo="Typo.h6" Class="mb-3">@group.Key</MudText>
+
+                    @foreach (var setting in group)
+                    {
+                        <div class="mb-5">
+                            <div class="d-flex align-center">
+                                <MudText Typo="Typo.subtitle2">@setting.Label</MudText>
+                                @if (IsDirty(setting))
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-2">
+                                        belum disimpan
+                                    </MudChip>
+                                }
+                                <MudSpacer />
+                                <MudIconButton Icon="@Icons.Material.Filled.Restore" Size="Size.Small"
+                                               title="Kembalikan ke nilai bawaan"
+                                               Disabled="@(!setting.IsModified)"
+                                               OnClick="@(() => ResetAsync(setting))" />
+                            </div>
+
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-2">
+                                @setting.Description · <code>@setting.Key</code>
+                            </MudText>
+
+                            @if (setting.ValueType == WebSettingTypes.Bool)
+                            {
+                                <MudSwitch T="bool" Color="Color.Primary"
+                                           Label="@BoolLabel(setting)"
+                                           Value="@(Draft(setting) == "true")"
+                                           ValueChanged="@(v => SetDraft(setting, v ? "true" : "false"))" />
+                            }
+                            else if (setting.ValueType == WebSettingTypes.Int)
+                            {
+                                <MudNumericField T="int" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                 Style="max-width:220px"
+                                                 Value="@DraftInt(setting)"
+                                                 ValueChanged="@(v => SetDraft(setting, v.ToString()))" />
+                            }
+                            else if (setting.ValueType == WebSettingTypes.Select)
+                            {
+                                <MudSelect T="string" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                           Style="max-width:220px"
+                                           Value="@Draft(setting)"
+                                           ValueChanged="@(v => SetDraft(setting, v))">
+                                    @foreach (var option in setting.Options)
+                                    {
+                                        <MudSelectItem Value="@option">@option</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            }
+                            else if (setting.ValueType == WebSettingTypes.Text)
+                            {
+                                <MudTextField T="string" Variant="Variant.Outlined" Lines="3"
+                                              Value="@Draft(setting)"
+                                              ValueChanged="@(v => SetDraft(setting, v))" />
+                            }
+                            else
+                            {
+                                <MudTextField T="string" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                              Value="@Draft(setting)"
+                                              ValueChanged="@(v => SetDraft(setting, v))" />
+                            }
+
+                            @if (setting.UpdatedBy is not null)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-1">
+                                    Terakhir diubah @setting.UpdatedBy · @setting.UpdatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+                                </MudText>
+                            }
+                        </div>
+                    }
+                </MudPaper>
+            }
+        }
+    </MudTabPanel>
+
+    @* ------------------------------ Setting aplikasi ------------------------------ *@
+    <MudTabPanel Text="Aplikasi" Icon="@Icons.Material.Filled.Tune">
+        @if (_appError is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4">@_appError</MudAlert>
+        }
+
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            Nilai tersimpan sebagai JSON di tabel <code>app_settings</code>. Ubah hanya jika Anda tahu
+            bentuk nilai yang diharapkan pembacanya.
+        </MudText>
+
+        <MudTable Items="@_appSettings" Dense="true" Hover="true" Loading="@_loadingApp" Elevation="0">
+            <HeaderContent>
+                <MudTh>Key</MudTh>
+                <MudTh>Value</MudTh>
+                <MudTh Style="text-align:right">Aksi</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><code>@context.Key</code></MudTd>
+                <MudTd>
+                    @if (_editingKey == context.Key)
+                    {
+                        <MudTextField @bind-Value="_editValue" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    }
+                    else
+                    {
+                        <MudText>@context.Value</MudText>
+                    }
+                </MudTd>
+                <MudTd Style="text-align:right">
+                    @if (_editingKey == context.Key)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Check" Color="Color.Success" Size="Size.Small"
+                                       Disabled="_savingApp" OnClick="@(() => SaveAppAsync(context.Key))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                                       OnClick="@(() => _editingKey = null)" />
+                    }
+                    else
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       OnClick="@(() => StartEdit(context))" />
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText>Belum ada setting aplikasi.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudTabPanel>
+
+</MudTabs>
+
+@code {
+    // --- Setting web ---
+    private List<WebSetting> _webSettings = [];
+    private readonly Dictionary<string, string> _draft = [];
+    private bool _loadingWeb = true;
+    private bool _savingWeb;
+    private string? _webError;
+
+    // --- Setting aplikasi ---
+    private List<ApplicationSetting> _appSettings = [];
+    private bool _loadingApp = true;
+    private bool _savingApp;
+    private string? _appError;
+    private string? _editingKey;
+    private string _editValue = "";
+
+    private int DirtyCount => _webSettings.Count(IsDirty);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadWebAsync();
+        await LoadAppAsync();
+    }
+
+    private async Task LoadWebAsync()
+    {
+        _loadingWeb = true;
+        _webError = null;
+        try
+        {
+            _webSettings = await Api.GetWebSettingsAsync();
+            DiscardDraft();
+        }
+        catch (AdminApiException ex)
+        {
+            _webError = ex.Message;
+        }
+        finally
+        {
+            _loadingWeb = false;
+        }
+    }
+
+    private async Task LoadAppAsync()
+    {
+        _loadingApp = true;
+        _appError = null;
+        try
+        {
+            _appSettings = await Api.GetApplicationSettingsAsync();
+        }
+        catch (AdminApiException ex)
+        {
+            _appError = ex.Message;
+        }
+        finally
+        {
+            _loadingApp = false;
+        }
+    }
+
+    // --- Draft: perubahan ditahan di memori sampai tombol Simpan ditekan, supaya
+    //     beberapa setting yang saling terkait bisa berpindah dalam satu langkah. ---
+
+    private string Draft(WebSetting setting) =>
+        _draft.TryGetValue(setting.Key, out var value) ? value : setting.Value;
+
+    private int DraftInt(WebSetting setting) => int.TryParse(Draft(setting), out var value) ? value : 0;
+
+    private void SetDraft(WebSetting setting, string? value) => _draft[setting.Key] = value ?? "";
+
+    private bool IsDirty(WebSetting setting) =>
+        _draft.TryGetValue(setting.Key, out var value) && value != setting.Value;
+
+    private string BoolLabel(WebSetting setting) => Draft(setting) == "true" ? "Aktif" : "Nonaktif";
+
+    private void DiscardDraft()
+    {
+        _draft.Clear();
+        foreach (var setting in _webSettings) _draft[setting.Key] = setting.Value;
+    }
+
+    private async Task SaveWebAsync()
+    {
+        var changed = _webSettings
+            .Where(IsDirty)
+            .Select(s => new WebSettingValue(s.Key, _draft[s.Key]))
+            .ToList();
+
+        if (changed.Count == 0) return;
+
+        _savingWeb = true;
+        try
+        {
+            var saved = await Api.SaveWebSettingsAsync(changed);
+
+            foreach (var setting in saved)
+            {
+                var index = _webSettings.FindIndex(s => s.Key == setting.Key);
+                if (index >= 0) _webSettings[index] = setting;
+                _draft[setting.Key] = setting.Value;
+            }
+
+            Snackbar.Add($"{saved.Count} setting disimpan", Severity.Success);
+        }
+        catch (AdminApiException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _savingWeb = false;
+        }
+    }
+
+    private async Task ResetAsync(WebSetting setting)
+    {
+        try
+        {
+            var reset = await Api.ResetWebSettingAsync(setting.Key);
+
+            var index = _webSettings.FindIndex(s => s.Key == reset.Key);
+            if (index >= 0) _webSettings[index] = reset;
+            _draft[reset.Key] = reset.Value;
+
+            Snackbar.Add($"{reset.Label} dikembalikan ke bawaan", Severity.Success);
+        }
+        catch (AdminApiException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private void StartEdit(ApplicationSetting setting)
+    {
+        _editingKey = setting.Key;
+        _editValue = setting.Value;
+    }
+
+    private async Task SaveAppAsync(string key)
+    {
+        _savingApp = true;
+        try
+        {
+            await Api.UpdateApplicationSettingAsync(key, _editValue);
+
+            var index = _appSettings.FindIndex(s => s.Key == key);
+            if (index >= 0) _appSettings[index] = new ApplicationSetting(key, _editValue);
+
+            _editingKey = null;
+            Snackbar.Add("Setting aplikasi disimpan", Severity.Success);
+        }
+        catch (AdminApiException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _savingApp = false;
+        }
+    }
+}

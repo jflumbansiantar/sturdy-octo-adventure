@@ -1,0 +1,17 @@
+@inject NavigationManager Nav
+
+@code {
+    /// <summary>
+    /// Melempar pengunjung anonim ke IdentityServer, membawa alamat yang tadi dituju
+    /// supaya setelah login ia kembali ke halaman yang sama, bukan ke beranda.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        var returnUrl = Nav.ToBaseRelativePath(Nav.Uri);
+        Nav.NavigateToLogin("authentication/login", new InteractiveRequestOptions
+        {
+            Interaction = InteractionType.SignIn,
+            ReturnUrl = string.IsNullOrEmpty(returnUrl) ? Nav.BaseUri : Nav.Uri,
+        });
+    }
+}

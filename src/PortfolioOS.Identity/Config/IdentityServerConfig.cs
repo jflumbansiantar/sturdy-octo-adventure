@@ -53,6 +53,7 @@ public static class IdentityServerConfig
     {
         var web = urls.WebBaseUrl.TrimEnd('/');
         var api = urls.ApiBaseUrl.TrimEnd('/');
+        var admin = urls.AdminWebBaseUrl.TrimEnd('/');
 
         var clients = new List<Client>
         {
@@ -115,6 +116,48 @@ public static class IdentityServerConfig
                 RefreshTokenExpiration = TokenExpiration.Sliding,
                 SlidingRefreshTokenLifetime = 60 * 60 * 24 * 30, // 30 hari — mobile jarang login ulang
                 AccessTokenLifetime = 60 * 60,
+            },
+
+            // --- Konsol admin (PortfolioOS.AdminWeb) ---
+            // Satu-satunya client yang boleh meminta scope admin. Dipisahkan dari
+            // "portfolioos-web" supaya token aplikasi biasa tidak pernah bisa membawa
+            // scope admin sekalipun yang login kebetulan seorang admin.
+            new()
+            {
+                ClientId = "portfolioos-admin",
+                ClientName = "PortfolioOS Admin Console",
+                AllowedGrantTypes = GrantTypes.Code,
+                RequireClientSecret = false,
+                RequirePkce = true,
+                RequireConsent = false,
+
+                RedirectUris = { admin + "/authentication/login-callback" },
+                PostLogoutRedirectUris = { admin + "/authentication/logout-callback" },
+                AllowedCorsOrigins = { admin },
+
+                AllowedScopes =
+                {
+                    IdentityServerConstants.StandardScopes.OpenId,
+                    IdentityServerConstants.StandardScopes.Profile,
+                    IdentityServerConstants.StandardScopes.Email,
+                    "roles",
+                    Scopes.Read,
+                    Scopes.Write,
+                    Scopes.Admin,
+                },
+
+                // Konsol membaca role dari id_token untuk memutuskan apa yang boleh
+                // ditampilkan; tanpa ini ia harus memanggil /connect/userinfo dulu.
+                AlwaysIncludeUserClaimsInIdToken = true,
+
+                AllowOfflineAccess = true,
+                RefreshTokenUsage = TokenUsage.OneTimeOnly,
+                RefreshTokenExpiration = TokenExpiration.Sliding,
+
+                // Sengaja jauh lebih pendek daripada client lain: sesi admin yang
+                // menganggur tidak perlu bisa dilanjutkan berhari-hari kemudian.
+                SlidingRefreshTokenLifetime = 60 * 60 * 8,       // 8 jam
+                AccessTokenLifetime = 60 * 30,                   // 30 menit
             },
 
             // --- Swagger UI di PortfolioOS.API ---

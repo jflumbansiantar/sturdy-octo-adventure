@@ -14,6 +14,9 @@ public class ClientUrlOptions
     /// <summary>Base URL API — dipakai untuk redirect Swagger UI.</summary>
     public string ApiBaseUrl { get; set; } = "https://localhost:7195";
 
+    /// <summary>Base URL konsol admin (PortfolioOS.AdminWeb), mis. https://localhost:7002</summary>
+    public string AdminWebBaseUrl { get; set; } = "https://localhost:7002";
+
     /// <summary>Custom URI scheme aplikasi MAUI, mis. portfolioos://callback</summary>
     public string MobileRedirectUri { get; set; } = "portfolioos://callback";
 
