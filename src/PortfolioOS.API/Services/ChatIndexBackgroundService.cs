@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using PortfolioOS.Application.Chat;
 using PortfolioOS.Application.Common.Interfaces;
 
 namespace PortfolioOS.API.Services;
@@ -17,14 +19,19 @@ namespace PortfolioOS.API.Services;
 /// </remarks>
 public class ChatIndexBackgroundService(
     IServiceProvider services,
+    IEmbeddingService embedder,
     ILogger<ChatIndexBackgroundService> logger) : BackgroundService
 {
     private static readonly TimeSpan Interval = TimeSpan.FromMinutes(15);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Let migrations and seeding finish before the first sweep reads the tables.
-        await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+        // Program.cs runs migrations and seeding between Build() and Run(), and hosted services
+        // only start inside Run() - so the tables are ready by now. This short pause just keeps
+        // the sweep off the critical path while the host finishes wiring up.
+        await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+
+        var warmed = false;
 
         using var timer = new PeriodicTimer(Interval);
         do
@@ -33,7 +40,24 @@ public class ChatIndexBackgroundService(
             {
                 using var scope = services.CreateScope();
                 var indexer = scope.ServiceProvider.GetRequiredService<IChatIndexService>();
-                await indexer.ReindexAsync(stoppingToken);
+                var result = await indexer.ReindexAsync(stoppingToken);
+
+                // Warm the model if the rebuild did not already force it open.
+                //
+                // Content hashing and lazy loading are each worth having, but together they
+                // hand the user the bill: when nothing has changed the sweep embeds nothing, so
+                // the ONNX session stays unloaded and the FIRST question of the session pays
+                // the full ~5 second load. Measured: 5.4s for that question, 0.05-0.14s for
+                // every one after it. One throwaway embedding here moves that cost off the
+                // user's first question.
+                if (result.Embedded == 0 && !warmed)
+                {
+                    var sw = Stopwatch.StartNew();
+                    await embedder.EmbedAsync("warmup", EmbeddingKind.Query, stoppingToken);
+                    logger.LogInformation("Embedding model warmed in {Elapsed}ms", sw.ElapsedMilliseconds);
+                }
+
+                warmed = true;
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
