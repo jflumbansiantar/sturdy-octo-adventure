@@ -64,4 +64,7 @@ MiniWealthManagement.iml
 tests/**/[Bb]in/
 tests/**/[Oo]bj/
 
+# Model embedding lokal (~490MB) - diunduh oleh scripts/fetch-embedding-model.sh
+src/PortfolioOS.API/models/
+
 appsettings.json

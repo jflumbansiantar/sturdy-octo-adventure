@@ -12,6 +12,13 @@
     </PackageReference>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
+
+    <!-- 0.2.x is the EF Core 8 line; 0.3.0 pulls Npgsql.EntityFrameworkCore.PostgreSQL 9. -->
+    <PackageReference Include="Pgvector.EntityFrameworkCore" Version="0.2.2" />
+
+    <!-- Local embedding model: no external service, no API key, works offline. -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.20.1" />
+    <PackageReference Include="Microsoft.ML.Tokenizers" Version="2.0.0" />
   </ItemGroup>
 
   <PropertyGroup>

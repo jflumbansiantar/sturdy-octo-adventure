@@ -13,7 +13,8 @@
           "FluentValidation.DependencyInjectionExtensions": "12.1.1",
           "MediatR": "14.1.0",
           "Microsoft.EntityFrameworkCore": "8.0.11",
-          "PortfolioOS.Domain": "1.0.0"
+          "PortfolioOS.Domain": "1.0.0",
+          "PortfolioOS.Shared": "1.0.0"
         },
         "runtime": {
           "PortfolioOS.Application.dll": {}
@@ -244,6 +245,17 @@
             "fileVersion": "1.0.0.0"
           }
         }
+      },
+      "PortfolioOS.Shared/1.0.0": {
+        "dependencies": {
+          "PortfolioOS.Domain": "1.0.0"
+        },
+        "runtime": {
+          "PortfolioOS.Shared.dll": {
+            "assemblyVersion": "1.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
       }
     }
   },
@@ -401,6 +413,11 @@
       "hashPath": "system.diagnostics.diagnosticsource.10.0.0.nupkg.sha512"
     },
     "PortfolioOS.Domain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "PortfolioOS.Shared/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

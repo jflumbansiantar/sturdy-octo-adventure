@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PortfolioOS.Domain\PortfolioOS.Domain.csproj" />
+    <ProjectReference Include="..\PortfolioOS.Shared\PortfolioOS.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>
