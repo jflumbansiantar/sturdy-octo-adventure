@@ -48,6 +48,9 @@ else if (_checked && Nav.Uri.Contains("/login"))
         _checked = true;
         if (!_authenticated && !Nav.Uri.Contains("/login"))
         {
+            // Drop the stale token on the way out, so the next visit does not repeat the
+            // check against a value already known to be dead.
+            await AuthService.ClearTokenAsync();
             Nav.NavigateTo("/login");
             return;
         }

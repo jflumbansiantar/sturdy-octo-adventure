@@ -1,0 +1,185 @@
+@page "/chat"
+@using PortfolioOS.Web.Components
+@using PortfolioOS.Web.Models
+@using PortfolioOS.Web.Services
+@inherits AppStateComponentBase
+@inject PortfolioApiClient Api
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<PageTitle>Asisten - PortfolioOS</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-1">Asisten</MudText>
+<MudText Typo="Typo.body2" Class="mb-4 mud-text-secondary">
+    Tanya apa saja tentang portofolio, transaksi, atau utang Anda. Semua angka diambil langsung
+    dari data Anda - asisten ini tidak mengarang.
+</MudText>
+
+@* The scrolling element is a plain div rather than the MudPaper itself: MudPaper does not
+   expose an ElementReference, and the JS helper needs one to set scrollTop. *@
+<MudPaper Class="pa-4 mb-3" Elevation="1">
+<div @ref="_log" style="min-height:55vh;max-height:55vh;overflow-y:auto;">
+    @if (_messages.Count == 0)
+    {
+        <div class="d-flex flex-column align-center justify-center" style="height:45vh;">
+            <MudIcon Icon="@Icons.Material.Filled.Forum" Size="Size.Large" Class="mb-3 mud-text-secondary" />
+            <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">Coba salah satu pertanyaan ini:</MudText>
+            <div class="d-flex flex-wrap justify-center" style="gap:8px;max-width:640px;">
+                @foreach (var starter in Starters)
+                {
+                    <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined"
+                             OnClick="@(() => SendAsync(starter))">@starter</MudChip>
+                }
+            </div>
+        </div>
+    }
+
+    @foreach (var msg in _messages)
+    {
+        @if (msg.IsUser)
+        {
+            <div class="d-flex justify-end mb-3">
+                <MudPaper Class="pa-3" Elevation="0"
+                          Style="max-width:75%;background:var(--mud-palette-primary);color:var(--mud-palette-primary-text);border-radius:12px 12px 2px 12px;">
+                    <MudText Typo="Typo.body2">@msg.Text</MudText>
+                </MudPaper>
+            </div>
+        }
+        else
+        {
+            <div class="d-flex justify-start mb-3">
+                <MudPaper Class="pa-3" Elevation="0"
+                          Style="max-width:85%;background:var(--mud-palette-background-grey);border-radius:12px 12px 12px 2px;">
+                    @* Privacy mode hides figures everywhere else in the app; an answer full of
+                       rupiah amounts would defeat that, so blur it here too. *@
+                    <div style="@(AppState.PrivacyMode ? "filter:blur(5px);user-select:none;" : "")">
+                        <MudText Typo="Typo.body2">@msg.Text</MudText>
+
+                        @if (msg.Answer?.Table is { Rows.Count: > 0 } table)
+                        {
+                            <div style="overflow-x:auto;">
+                                <MudSimpleTable Dense Bordered="false" Striped Class="mt-3">
+                                    <thead>
+                                        <tr>@foreach (var col in table.Columns) { <th>@col</th> }</tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var row in table.Rows)
+                                        {
+                                            <tr>@foreach (var cell in row) { <td>@cell</td> }</tr>
+                                        }
+                                    </tbody>
+                                </MudSimpleTable>
+                            </div>
+                        }
+                    </div>
+
+                    @if (msg.Answer is { Sources.Count: > 0 })
+                    {
+                        <div class="d-flex flex-wrap align-center mt-2" style="gap:4px;">
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">Sumber:</MudText>
+                            @foreach (var src in msg.Answer.Sources.Take(5))
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@src.Label</MudChip>
+                            }
+                        </div>
+                    }
+
+                    @if (msg.Answer is { Suggestions.Count: > 0 })
+                    {
+                        <div class="d-flex flex-wrap mt-2" style="gap:6px;">
+                            @foreach (var s in msg.Answer.Suggestions)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Primary"
+                                         Variant="Variant.Outlined" OnClick="@(() => SendAsync(s))">@s</MudChip>
+                            }
+                        </div>
+                    }
+                </MudPaper>
+            </div>
+        }
+    }
+
+    @if (_sending)
+    {
+        <div class="d-flex justify-start mb-3">
+            <MudPaper Class="pa-3" Elevation="0" Style="background:var(--mud-palette-background-grey);border-radius:12px;">
+                <MudProgressCircular Size="Size.Small" Indeterminate />
+            </MudPaper>
+        </div>
+    }
+</div>
+</MudPaper>
+
+<div class="d-flex align-center" style="gap:8px;">
+    @* Immediate is what makes the value update per keystroke; adding
+       @bind-Value:event="oninput" on top of it stops the binding firing at all, which leaves
+       the send button permanently disabled. *@
+    <MudTextField @bind-Value="_question"
+                  Placeholder="Tulis pertanyaan Anda..."
+                  Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true"
+                  OnKeyDown="OnKeyDown" Disabled="_sending" Class="flex-grow-1" />
+    <MudIconButton Icon="@Icons.Material.Filled.Send" Color="Color.Primary" Variant="Variant.Filled"
+                   Disabled="@(_sending || string.IsNullOrWhiteSpace(_question))"
+                   OnClick="@(() => SendAsync(_question))" />
+</div>
+
+@code {
+    private readonly List<ChatMessage> _messages = [];
+    private string _question = string.Empty;
+    private bool _sending;
+    private ElementReference _log;
+    private bool _scrollPending;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Scrolling has to happen after the new message is in the DOM, so it is deferred to
+        // the render that follows rather than done inside SendAsync.
+        if (!_scrollPending) return;
+        _scrollPending = false;
+
+        await JS.InvokeVoidAsync("portfolioOsChat.scrollToBottom", _log);
+    }
+
+    private static readonly string[] Starters =
+    [
+        "Berapa total nilai portofolio saya?",
+        "Utang mana yang bunganya paling tinggi?",
+        "Berapa pengeluaran saya bulan lalu?",
+        "Berapa kekayaan bersih saya?",
+    ];
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey && !_sending && !string.IsNullOrWhiteSpace(_question))
+            await SendAsync(_question);
+    }
+
+    private async Task SendAsync(string question)
+    {
+        question = question.Trim();
+        if (_sending || question.Length == 0) return;
+
+        _messages.Add(new ChatMessage(true, question));
+        _question = string.Empty;
+        _sending = true;
+        _scrollPending = true;
+
+        try
+        {
+            var answer = await Api.AskChatAsync(question);
+            _messages.Add(answer is null
+                ? new ChatMessage(false, "Maaf, terjadi gangguan saat memproses pertanyaan.")
+                : new ChatMessage(false, answer.Text, answer));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Gagal mengirim pertanyaan: {ex.Message}", Severity.Error);
+            _messages.Add(new ChatMessage(false, "Maaf, terjadi gangguan saat menghubungi server."));
+        }
+        finally
+        {
+            _sending = false;
+            _scrollPending = true;
+        }
+    }
+}

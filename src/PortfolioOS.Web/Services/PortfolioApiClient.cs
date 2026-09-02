@@ -204,5 +204,14 @@ public class PortfolioApiClient(HttpClient http, AuthService auth)
         resp.EnsureSuccessStatusCode();
     }
 
+    // Chat
+    public async Task<ChatAnswerModel?> AskChatAsync(string question)
+    {
+        await PrepareAsync();
+        var resp = await http.PostAsJsonAsync("api/chat", new { question });
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content.ReadFromJsonAsync<ChatAnswerModel>();
+    }
+
     private record IdResponse(Guid Id);
 }
