@@ -1,6 +1,10 @@
 using FluentAssertions;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using PortfolioOS.Application.Chat;
 using PortfolioOS.Application.Chat.Intents;
+using PortfolioOS.Application.Chat.Skills;
 using PortfolioOS.Domain.Enums;
 
 namespace PortfolioOS.Application.Tests.Chat;
@@ -50,11 +54,12 @@ public class IntentRoutingTests
     [Fact]
     public void Rejects_when_two_skills_are_too_close_to_separate()
     {
-        // High score, but nothing distinguishes the top two skills - the case an absolute
-        // threshold alone cannot catch.
+        // A near-perfect tie between two answerable skills: answering either would be a coin
+        // flip presented as a fact. The gate is deliberately light now that out-of-scope
+        // questions are caught by their own intents rather than by this margin.
         var decision = IntentRouter.Route([
             Phrase(SkillIds.PortfolioSummary, 0.9500),
-            Phrase(SkillIds.LedgerNetWorth, 0.9480),
+            Phrase(SkillIds.LedgerNetWorth, 0.9496),
         ]);
 
         decision.Accepted.Should().BeFalse();
@@ -95,18 +100,18 @@ public class IntentRoutingTests
     }
 
     [Fact]
-    public void Literal_evidence_rescues_a_thin_margin()
+    public void Literal_evidence_rescues_a_score_below_the_normal_floor()
     {
-        // "posisi NVDA saya gimana": strong score, margin under the normal gate, but the
-        // question names a ticker the user actually holds.
+        // "pengeluaran april 2026 berapa" scores 0.8765 - under the normal floor, but the
+        // question names a resolvable date, so the relaxed floor applies.
         var candidates = new[]
         {
-            Phrase(SkillIds.HoldingDetail, 0.9214),
-            Phrase(SkillIds.PortfolioSummary, 0.9150),
+            Phrase(SkillIds.TransactionsSpendInPeriod, 0.8765),
+            Phrase(SkillIds.TransactionsByCategory, 0.8613),
         };
 
         IntentRouter.Route(candidates).Accepted.Should().BeFalse();
-        IntentRouter.Route(candidates, [SkillIds.HoldingDetail]).Accepted.Should().BeTrue();
+        IntentRouter.Route(candidates, [SkillIds.TransactionsSpendInPeriod]).Accepted.Should().BeTrue();
     }
 
     [Fact]
@@ -145,6 +150,26 @@ public class IntentRoutingTests
         var canonical = IntentCatalog.All.Select(i => i.CanonicalQuestion).ToList();
         decision.Suggestions.Should().OnlyContain(s => canonical.Contains(s));
         decision.Suggestions.Should().HaveCountLessThanOrEqualTo(ChatDefaults.SuggestionCount);
+    }
+
+    [Fact]
+    public void Every_catalogued_skill_is_registered_exactly_once_and_vice_versa()
+    {
+        // Resolved through the real container rather than by reflection: several skills take
+        // their id from a constructor parameter, so an uninitialised instance reports null and
+        // a reflection-only check silently compares nothing.
+        var services = new ServiceCollection();
+        services.AddApplication();
+        services.AddSingleton(Mock.Of<IMediator>());
+        using var provider = services.BuildServiceProvider();
+
+        var registered = provider.GetServices<IChatSkill>().Select(s => s.SkillId).ToList();
+        var catalogued = IntentCatalog.All.Select(i => i.SkillId).ToList();
+
+        registered.Should().NotContainNulls();
+        registered.Should().OnlyHaveUniqueItems("two skills must not claim the same id");
+        registered.Should().BeEquivalentTo(catalogued,
+            "a catalogued phrase with no skill routes successfully and then refuses");
     }
 
     [Fact]

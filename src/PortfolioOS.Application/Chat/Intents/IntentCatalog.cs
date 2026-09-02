@@ -21,14 +21,30 @@ public static class SkillIds
     public const string LedgerAccountBalance = "ledger.account_balance";
     public const string MarketFx = "market.fx";
     public const string HelpCapabilities = "help.capabilities";
+
+    // Out-of-scope intents. These are modelled explicitly rather than left to a distance
+    // threshold, because what puts them out of scope is not their topic. "Apakah portofolio saya
+    // akan naik tahun depan" is squarely about the portfolio and scores 0.91 against the
+    // portfolio phrasings; what disqualifies it is that it asks about the future. Only a curated
+    // phrase for "asking about the future" can catch that.
+    public const string MetaForecast = "meta.forecast";
+    public const string MetaAdvice = "meta.advice";
+    public const string MetaMutation = "meta.mutation";
+    public const string MetaSmallTalk = "meta.smalltalk";
+    public const string MetaGeneralKnowledge = "meta.general_knowledge";
 }
 
 /// <summary>One skill and the ways people actually ask for it.</summary>
+/// <param name="IsOutOfScope">
+/// True for intents that exist so the assistant can decline precisely. They are matched the same
+/// way as any other, and their skills answer with an explanation instead of data.
+/// </param>
 public sealed record IntentDefinition(
     string SkillId,
     string Description,
     string CanonicalQuestion,
-    IReadOnlyList<string> Phrases);
+    IReadOnlyList<string> Phrases,
+    bool IsOutOfScope = false);
 
 /// <summary>
 /// The curated question bank. Every phrase here is embedded once and stored as an
@@ -95,6 +111,8 @@ public static class IntentCatalog
                 "breakdown portofolio per pasar",
                 "asset allocation breakdown",
                 "how is my portfolio split",
+                "saya lebih banyak di pasar mana",
+                "sebaran aset saya seperti apa",
                 "percentage in each market",
             ]),
 
@@ -113,6 +131,8 @@ public static class IntentCatalog
                 "harga rata-rata beli saya berapa",
                 "saham ini untung berapa",
                 "saham ini boncos berapa",
+                "saya rugi berapa di saham ini",
+                "saya untung berapa di ticker ini",
                 "posisi saya di saham ini gimana",
                 "show me my position in this stock",
                 "average cost of this holding",
@@ -158,6 +178,8 @@ public static class IntentCatalog
                 "rekap transaksi per kategori",
                 "uang saya habis untuk apa saja",
                 "kategori pengeluaran terbesar",
+                "kategori mana yang paling menguras",
+                "pos pengeluaran paling besar yang mana",
                 "perbandingan pemasukan dan pengeluaran",
                 "breakdown transaksi berdasarkan kategori",
                 "what category do I spend the most on",
@@ -190,6 +212,8 @@ public static class IntentCatalog
                 "utang mana yang paling mencekik",
                 "hutang mana yang harus saya lunasi duluan",
                 "cicilan dengan bunga tertinggi",
+                "cicilan mana yang paling bikin rugi",
+                "utang mana yang paling membebani saya",
                 "which debt has the highest interest rate",
                 "which loan costs me the most",
                 "what should I pay off first",
@@ -259,12 +283,108 @@ public static class IntentCatalog
                 "fitur apa saja yang tersedia",
                 "contoh pertanyaan yang bisa saya tanyakan",
                 "apa yang bisa kamu lakukan",
+                "tolong jelaskan kegunaanmu",
+                "jelaskan kamu bisa apa",
                 "bantuan",
                 "what can you do",
                 "help",
                 "list of supported questions",
             ]),
+
+        // ---- Out of scope: matched deliberately, answered with a clear "no" ----
+
+        new(SkillIds.MetaForecast,
+            "Pertanyaan tentang masa depan - tidak bisa dijawab dari catatan.",
+            "Apakah portofolio saya akan naik tahun depan?",
+            [
+                "apakah portofolio saya akan naik tahun depan",
+                "prediksi harga saham ini bulan depan berapa",
+                "menurutmu pasar akan naik atau turun",
+                "berapa perkiraan nilai investasi saya tahun depan",
+                "kapan harga saham ini akan naik",
+                "apakah saya akan untung nanti",
+                "proyeksikan kekayaan saya lima tahun lagi",
+                "will my portfolio go up next year",
+                "predict the price of this stock",
+                "forecast my net worth",
+            ],
+            IsOutOfScope: true),
+
+        new(SkillIds.MetaAdvice,
+            "Permintaan rekomendasi atau nasihat investasi.",
+            "Sebaiknya saya beli saham apa?",
+            [
+                "sebaiknya saya beli saham apa sekarang",
+                "saham apa yang bagus untuk dibeli",
+                "menurutmu saya harus jual atau tahan",
+                "rekomendasikan investasi untuk saya",
+                "apakah sebaiknya saya melunasi utang ini",
+                "tolong belikan saya saham",
+                "bantu saya memilih reksa dana",
+                "what should I invest in",
+                "should I sell this stock",
+                "give me investment advice",
+            ],
+            IsOutOfScope: true),
+
+        new(SkillIds.MetaMutation,
+            "Perintah mengubah, menambah, atau menghapus data.",
+            "Apakah kamu bisa mengubah data saya?",
+            [
+                "hapus semua transaksi saya",
+                "hapus catatan transaksi",
+                "hapus riwayat transaksi bulan lalu",
+                "buang data transaksi lama",
+                "tolong ubah harga beli saham ini",
+                "tambahkan transaksi baru",
+                "edit data utang saya",
+                "hapus holding ini dari portofolio",
+                "simpan perubahan ini",
+                "update saldo akun saya",
+                "delete my transactions",
+                "change my average cost",
+                "add a new transaction for me",
+            ],
+            IsOutOfScope: true),
+
+        new(SkillIds.MetaSmallTalk,
+            "Sapaan dan obrolan ringan.",
+            "Kamu bisa menjawab apa saja?",
+            [
+                "halo",
+                "hai apa kabar",
+                "selamat pagi",
+                "terima kasih ya",
+                "kamu siapa",
+                "siapa nama kamu",
+                "ceritakan sebuah lelucon",
+                "hello there",
+                "thanks",
+                "who are you",
+            ],
+            IsOutOfScope: true),
+
+        new(SkillIds.MetaGeneralKnowledge,
+            "Pengetahuan umum di luar data PortfolioOS.",
+            "Apa itu inflasi?",
+            [
+                "apa itu inflasi",
+                "jelaskan apa itu reksa dana",
+                "apa bedanya saham dan obligasi",
+                "siapa presiden Indonesia",
+                "cuaca besok bagaimana",
+                "berapa gaji rata-rata programmer",
+                "resep masakan apa yang enak",
+                "what is compound interest",
+                "explain what an ETF is",
+                "who is the president",
+            ],
+            IsOutOfScope: true),
     ];
+
+    /// <summary>Intents that produce an answer from the user's data.</summary>
+    public static IReadOnlyList<IntentDefinition> Answerable { get; } =
+        [.. All.Where(i => !i.IsOutOfScope)];
 
     public static IReadOnlyDictionary<string, IntentDefinition> BySkillId { get; } =
         All.ToDictionary(i => i.SkillId, StringComparer.Ordinal);

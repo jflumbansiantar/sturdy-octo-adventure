@@ -29,16 +29,40 @@ public sealed class OnnxEmbeddingService : IEmbeddingService, IDisposable
     private const long EosId = 2;           // </s>
     private const int UnkId = 3;            // <unk>
 
-    private readonly Lazy<Model> _model;
+    private readonly object _gate = new();
+    private readonly string _dir;
     private readonly ILogger<OnnxEmbeddingService> _logger;
+
+    // volatile: read on the fast path outside the lock, so the write must not be reordered
+    // ahead of the object it publishes.
+    private volatile Model? _model;
 
     public int Dimensions => ChatDefaults.EmbeddingDimensions;
 
     public OnnxEmbeddingService(IConfiguration configuration, ILogger<OnnxEmbeddingService> logger)
     {
         _logger = logger;
-        var dir = configuration["Embedding:ModelPath"] ?? "models/e5-small";
-        _model = new Lazy<Model>(() => Load(dir), LazyThreadSafetyMode.ExecutionAndPublication);
+        _dir = configuration["Embedding:ModelPath"] ?? "models/e5-small";
+    }
+
+    /// <summary>
+    /// Loads the model on first use, and lets a failed load be retried later.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately not a <see cref="Lazy{T}"/>: with ExecutionAndPublication it caches the
+    /// *exception* as well as the value, so a first attempt made before the model was downloaded
+    /// would keep throwing the same "file not found" for the lifetime of the process - the
+    /// operator downloads the model, retries, and is told it is still missing. Retrying a
+    /// failure is exactly the behaviour wanted here.
+    /// </remarks>
+    private Model GetModel()
+    {
+        if (_model is { } ready) return ready;
+
+        lock (_gate)
+        {
+            return _model ??= Load(_dir);
+        }
     }
 
     public Task<float[]> EmbedAsync(string text, EmbeddingKind kind, CancellationToken ct = default)
@@ -64,7 +88,7 @@ public sealed class OnnxEmbeddingService : IEmbeddingService, IDisposable
 
     private float[] Embed(string text, EmbeddingKind kind)
     {
-        var model = _model.Value;
+        var model = GetModel();
 
         // e5 was trained with these literal prefixes; omitting them costs accuracy silently.
         var prefixed = (kind == EmbeddingKind.Query ? "query: " : "passage: ") + text;
@@ -168,7 +192,7 @@ public sealed class OnnxEmbeddingService : IEmbeddingService, IDisposable
 
     public void Dispose()
     {
-        if (_model.IsValueCreated) _model.Value.Session.Dispose();
+        _model?.Session.Dispose();
     }
 
     private sealed record Model(

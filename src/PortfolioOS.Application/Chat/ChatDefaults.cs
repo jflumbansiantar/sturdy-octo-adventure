@@ -31,14 +31,18 @@ public static class ChatDefaults
     /// Secondary gate, catching questions that score high against everything equally.
     /// </summary>
     /// <remarks>
-    /// Kept deliberately loose. An earlier reading on a 12-phrase catalogue suggested margin was
-    /// the stronger signal; on the full catalogue that reversed — margins of valid and invalid
-    /// questions overlap outright ("halo" margins 0.034, above three genuine questions), so a
-    /// strict margin gate rejected correct answers while letting nothing extra out.
-    /// At 0.010 it only vetoes the genuinely flat cases (0.0015-0.0044) and defers to
-    /// <see cref="MinScore"/> for everything else.
+    /// Deliberately loose, and it got looser once the out-of-scope intents were added. Before
+    /// them the margin was carrying weight it was never suited to: a forecast or an instruction
+    /// scores high on topic, so the only thing separating it from a real question was a hairline
+    /// margin. Now those are matched by their own phrases and declined by name, and the margin
+    /// only has to stop the router committing to one of two near-tied *answerable* skills -
+    /// a far milder failure, worth far fewer false refusals.
+    /// <para>
+    /// Measured over 60 held-out questions: correctly answered ones run 0.0014-0.1228, and no
+    /// out-of-scope question depends on this gate any more.
+    /// </para>
     /// </remarks>
-    public const double MinMargin = 0.010;
+    public const double MinMargin = 0.001;
 
     /// <summary>
     /// Relaxed gates used when a literal signal independently corroborates the chosen skill.
@@ -55,7 +59,11 @@ public static class ChatDefaults
     /// </para>
     /// </remarks>
     public const double CorroboratedMinScore = 0.86;
-    public const double CorroboratedMinMargin = 0.003;
+
+    // Zero, not merely smaller: with MinMargin already at 0.001 a "relaxed" value above it
+    // would tighten the gate instead of loosening it. Corroboration waives the margin outright
+    // and leans on the score floor, which is the half that is still doing work.
+    public const double CorroboratedMinMargin = 0.0;
 
     /// <summary>How many suggestions to offer when a question is rejected.</summary>
     public const int SuggestionCount = 3;

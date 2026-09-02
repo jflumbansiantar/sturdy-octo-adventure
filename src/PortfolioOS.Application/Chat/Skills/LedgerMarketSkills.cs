@@ -103,7 +103,7 @@ public sealed class HelpCapabilitiesSkill : IChatSkill
     {
         var table = new ChatTable(
             ["Bisa ditanyakan", "Contoh"],
-            [.. IntentCatalog.All
+            [.. IntentCatalog.Answerable
                 .Where(i => i.SkillId != SkillIds.HelpCapabilities)
                 .Select(i => (IReadOnlyList<string>)[i.Description, i.CanonicalQuestion])]);
 

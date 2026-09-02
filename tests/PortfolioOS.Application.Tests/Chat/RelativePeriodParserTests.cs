@@ -105,6 +105,38 @@ public class RelativePeriodParserTests
     }
 
     [Fact]
+    public void An_english_month_name_that_is_also_a_common_word_is_not_a_month()
+    {
+        // "may" here is a modal verb. Reading it as May silently narrowed the range to one month.
+        RelativePeriodParser.Parse("how much may I spend", Today).Should().BeNull();
+    }
+
+    [Fact]
+    public void An_english_month_name_next_to_a_number_still_counts()
+    {
+        var period = RelativePeriodParser.Parse("spending in may 2026", Today);
+
+        period!.From.Should().Be(new DateOnly(2026, 5, 1));
+        period.To.Should().Be(new DateOnly(2026, 5, 31));
+    }
+
+    [Theory]
+    [InlineData("pengeluaran maret dan januari berapa", 3)]
+    [InlineData("pengeluaran januari dan maret berapa", 1)]
+    public void When_two_months_are_named_the_first_one_wins(string question, int expectedMonth)
+    {
+        // Ordering used to depend on Dictionary enumeration, which is not contractual.
+        RelativePeriodParser.Parse(question, Today)!.From.Month.Should().Be(expectedMonth);
+    }
+
+    [Fact]
+    public void A_month_name_must_be_a_whole_word()
+    {
+        // Guards the  anchors: without them "mei" matches inside unrelated words.
+        RelativePeriodParser.Parse("berapa biaya pemeliharaan", Today).Should().BeNull();
+    }
+
+    [Fact]
     public void No_time_expression_yields_null_rather_than_a_guess()
     {
         // Callers treat null as "no filter". Defaulting to today would silently under-report.

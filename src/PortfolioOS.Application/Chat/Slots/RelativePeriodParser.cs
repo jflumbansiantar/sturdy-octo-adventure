@@ -104,13 +104,26 @@ public static partial class RelativePeriodParser
 
         // A bare month name means that month in the current year - or last year if naming it
         // would otherwise point at a month that has not happened yet.
+        //
+        // The month named FIRST wins, rather than whichever the dictionary happens to yield:
+        // enumeration order is not part of Dictionary's contract, and "maret dan januari"
+        // should resolve to maret.
+        (int Index, int Month, string Name)? earliest = null;
         foreach (var (name, month) in MonthNames)
         {
-            if (!Regex.IsMatch(q, $@"\b{name}\b", RegexOptions.IgnoreCase)) continue;
+            var hit = Regex.Match(q, $@"\b{Regex.Escape(name)}\b", RegexOptions.IgnoreCase);
+            if (!hit.Success) continue;
+            if (AmbiguousInEnglish.Contains(name) && !HasNumberNearby(q, hit)) continue;
 
-            var year = month > today.Month ? today.Year - 1 : today.Year;
-            var first = new DateOnly(year, month, 1);
-            return new DatePeriod(first, first.AddMonths(1).AddDays(-1), $"{name} {year}");
+            if (earliest is null || hit.Index < earliest.Value.Index)
+                earliest = (hit.Index, month, name);
+        }
+
+        if (earliest is { } found)
+        {
+            var year = found.Month > today.Month ? today.Year - 1 : today.Year;
+            var first = new DateOnly(year, found.Month, 1);
+            return new DatePeriod(first, first.AddMonths(1).AddDays(-1), $"{found.Name} {year}");
         }
 
         // Last resort: an explicit date written out in the question.
@@ -119,6 +132,25 @@ public static partial class RelativePeriodParser
             return Day(explicitDate.Value, ChatFormat.Date(explicitDate.Value));
 
         return null;
+    }
+
+    /// <summary>
+    /// English month names that are ordinary words first and months second.
+    /// </summary>
+    /// <remarks>
+    /// "how much may I spend" was being read as May 2026, silently narrowing a whole year of
+    /// spending to one month. These count as months only when a number sits beside them; the
+    /// Indonesian names carry no such ambiguity and are matched unconditionally.
+    /// </remarks>
+    private static readonly HashSet<string> AmbiguousInEnglish =
+        new(StringComparer.OrdinalIgnoreCase) { "may", "march", "august" };
+
+    /// <summary>True when a digit sits close enough to read as a day or year for this word.</summary>
+    private static bool HasNumberNearby(string text, Match match)
+    {
+        var start = Math.Max(0, match.Index - 6);
+        var end = Math.Min(text.Length, match.Index + match.Length + 6);
+        return Regex.IsMatch(text[start..end], "[0-9]");
     }
 
     private static DatePeriod Day(DateOnly d, string label) => new(d, d, label);

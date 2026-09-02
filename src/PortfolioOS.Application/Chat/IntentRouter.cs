@@ -71,17 +71,26 @@ public static class IntentRouter
     /// <summary>The nearest questions we *can* answer, so a refusal still moves the user forward.</summary>
     private static IReadOnlyList<string> SuggestionsFrom(IReadOnlyList<ScoredDocument> candidates)
     {
+        // Out-of-scope intents are excluded: their canonical question ("Apakah portofolio saya
+        // akan naik tahun depan?") exists to be recognised and declined, so offering it as a
+        // suggestion would invite the user into a refusal.
         var suggestions = candidates
             .Where(c => c.SkillId is not null)
             .Select(c => c.SkillId!)
             .Distinct(StringComparer.Ordinal)
+            .Where(id => IntentCatalog.BySkillId.TryGetValue(id, out var i) && !i.IsOutOfScope)
             .Take(ChatDefaults.SuggestionCount)
-            .Where(IntentCatalog.BySkillId.ContainsKey)
             .Select(id => IntentCatalog.BySkillId[id].CanonicalQuestion)
             .ToList();
 
         return suggestions.Count > 0 ? suggestions : DefaultSuggestions();
     }
+
+    /// <summary>
+    /// Questions to fall back on whenever there is nothing better to offer. Public so the
+    /// refusal path can never end up showing an empty list.
+    /// </summary>
+    public static IReadOnlyList<string> FallbackSuggestions => DefaultSuggestions();
 
     private static IReadOnlyList<string> DefaultSuggestions() =>
     [

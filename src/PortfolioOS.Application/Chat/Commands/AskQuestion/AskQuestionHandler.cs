@@ -56,7 +56,7 @@ public class AskQuestionHandler(
         {
             // A phrase in the catalogue whose skill was never registered. Refusing is safer than
             // an unhandled exception, but it is a wiring bug rather than a user error.
-            return Refuse(decision with { SkillId = null }, facts);
+            return Refuse(decision, facts);
         }
 
         var answer = await skill.ExecuteAsync(new ChatSkillContext(question, today, facts), ct);
@@ -64,43 +64,14 @@ public class AskQuestionHandler(
         return answer with { SkillId = decision.SkillId, Confidence = decision.Score };
     }
 
-    /// <summary>
-    /// Finds skills the question supports through plain string matching rather than embeddings.
-    /// </summary>
-    /// <remarks>
-    /// This is the "hybrid" half of retrieval. Cosine similarity is weak exactly where these
-    /// signals are strong: a bare ticker carries almost no semantic content, and "april 2026"
-    /// looks much like any other question about spending. Neither signal is allowed to answer
-    /// on its own — it only lowers the bar for a skill the embedding already ranked first.
-    /// </remarks>
+    /// <summary>Gathers the non-embedding evidence this question carries.</summary>
     private async Task<IReadOnlyCollection<string>> FindLiteralSignalsAsync(
         string question, DateOnly today, CancellationToken ct)
     {
-        var signals = new HashSet<string>(StringComparer.Ordinal);
-
-        if (RelativePeriodParser.Parse(question, today) is not null)
-        {
-            signals.Add(SkillIds.TransactionsSpendInPeriod);
-            signals.Add(SkillIds.TransactionsByCategory);
-        }
-
-        var words = question
-            .Split([' ', ',', '.', '?', '!', ':', ';', '(', ')', '\'', '"'], StringSplitOptions.RemoveEmptyEntries)
-            .Select(w => w.ToUpperInvariant())
-            .ToHashSet(StringComparer.Ordinal);
-
-        // Holding cards are written as "TICKER — Name. ...", so the ticker is the leading token.
         var holdings = await retriever.ListAsync(ChatDocumentKind.Holding, ct);
-        if (holdings.Any(h => words.Contains(LeadingToken(h.Content))))
-            signals.Add(SkillIds.HoldingDetail);
+        var tickers = holdings.Select(h => LiteralSignalDetector.TickerOf(h.Content));
 
-        return signals;
-    }
-
-    private static string LeadingToken(string content)
-    {
-        var end = content.IndexOf(' ');
-        return (end < 0 ? content : content[..end]).ToUpperInvariant();
+        return LiteralSignalDetector.Detect(question, today, tickers);
     }
 
     /// <summary>
@@ -120,10 +91,14 @@ public class AskQuestionHandler(
                 [.. facts.Take(3).Select(f => (IReadOnlyList<string>)[f.Content])]);
         }
 
+        // An accepted decision carries no suggestions, so the wiring-bug path above would
+        // otherwise leave the user staring at a refusal with nowhere to go.
         return new ChatAnswer(
             text,
             Table: table,
             Confidence: decision.Score,
-            Suggestions: decision.Suggestions);
+            Suggestions: decision.Suggestions.Count > 0
+                ? decision.Suggestions
+                : IntentRouter.FallbackSuggestions);
     }
 }
