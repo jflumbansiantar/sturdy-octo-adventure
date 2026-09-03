@@ -10,7 +10,13 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddMudServices();
 
-var apiBase = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7195";
+// Kosong = pakai origin situs ini sendiri. Itu yang dipakai deployment di balik reverse
+// proxy: web dilayani di "/" dan API di "/api" pada host yang sama, jadi tidak ada nama host
+// yang perlu di-hardcode ke dalam file konfigurasi (dan CORS tidak ikut bermain).
+var configuredApiBase = builder.Configuration["ApiBaseUrl"];
+var apiBase = string.IsNullOrWhiteSpace(configuredApiBase)
+    ? builder.HostEnvironment.BaseAddress
+    : configuredApiBase;
 
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<AppState>();

@@ -1,0 +1,112 @@
+# Test-drive stack — a throwaway copy of PortfolioOS for strangers to try.
+#
+# Separate from docker-compose.yml on purpose. The demo account already isolates each visitor
+# in their own schema, but that still leaves every session sharing a database, a process and a
+# connection limit with the owner's real data. Here they share nothing: own Postgres, own
+# volume, own JWT secret, own ports. Anything that goes wrong in this stack - a session storm,
+# a filled disk, a bad deploy - cannot reach the real one.
+#
+#   docker compose -f docker-compose.demo.yml up -d --build
+#   docker compose -f docker-compose.demo.yml down -v      # and the whole demo database is gone
+#
+# Web: http://localhost:8082   API/Swagger: http://localhost:5343/swagger   Postgres: 5433
+#
+# Every setting below has a default that reproduces exactly that local run, and reads an
+# environment variable so a server can override it without editing this file. Deploying on a
+# VPS means writing a .env next to this file - see .env.demo.example - and nothing else:
+#
+#   docker compose -f docker-compose.demo.yml --env-file .env.demo up -d --build
+#
+# Published ports bind to 127.0.0.1, never 0.0.0.0. On a laptop that changes nothing; on a
+# public host it is the difference between "the reverse proxy can reach it" and "the whole
+# internet can reach it", which for the Postgres port in particular is not a small difference.
+name: portfolioos-demo
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: portfolioos
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DEMO_DB_PASSWORD:-postgres}
+    ports:
+      # Loopback only: the API reaches Postgres over the compose network, so nothing outside
+      # this host ever needs the port. Exposed at all only so you can psql into the sandboxes.
+      - "127.0.0.1:${DEMO_DB_PORT:-5433}:5432"
+    volumes:
+      - pgdata-demo:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d portfolioos"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: src/PortfolioOS.API/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Development also turns Swagger on. That is wanted on a laptop and is a deliberate
+      # choice on a public demo, so it is a variable rather than a constant. The custom
+      # exception handler never returns a stack trace either way.
+      ASPNETCORE_ENVIRONMENT: ${DEMO_ASPNETCORE_ENVIRONMENT:-Development}
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=portfolioos;Username=postgres;Password=${DEMO_DB_PASSWORD:-postgres}"
+
+      # Deliberately not the main stack's secret: a token minted here must be worthless there.
+      # The default is fine for a laptop and worthless on a public host, where the value is
+      # published in this repository - set DEMO_JWT_SECRET there.
+      Jwt__Secret: ${DEMO_JWT_SECRET:-demo-stack-only-secret-key-not-used-in-production-32c}
+      Jwt__Issuer: PortfolioOS
+      Jwt__Audience: PortfolioOS
+      Jwt__ExpiryHours: "24"
+
+      # The owner login is not meant to be used in this stack - only the demo account is. It is
+      # set to a throwaway value rather than left blank because the API refuses to authenticate
+      # against unset credentials. It still authenticates, though, and it still lands on the
+      # unsandboxed `public` schema, so a public deployment should give it a random password.
+      Auth__Username: ${DEMO_OWNER_USERNAME:-owner}
+      Auth__Password: ${DEMO_OWNER_PASSWORD:-unused-in-the-demo-stack}
+
+      # The one stack where this is on.
+      Demo__Enabled: "true"
+      Demo__Username: ${DEMO_USERNAME:-demo}
+      Demo__Password: ${DEMO_PASSWORD:-demo123}
+      Demo__SessionMinutes: "${DEMO_SESSION_MINUTES:-60}"
+      Demo__IdleMinutes: "${DEMO_IDLE_MINUTES:-20}"
+      Demo__MaxConcurrentSessions: "${DEMO_MAX_SESSIONS:-5}"
+
+      # Unused when the site and the API answer on one origin behind a proxy - the browser
+      # sends no cross-origin request to allow. Still set, because it is what makes the
+      # two-ports layout work and an empty allow-list is a confusing way to fail.
+      Cors__AllowedOrigins__0: ${DEMO_PUBLIC_ORIGIN:-http://localhost:8082}
+    ports:
+      - "127.0.0.1:${DEMO_API_PORT:-5343}:8080"
+
+  web:
+    build:
+      context: .
+      dockerfile: src/PortfolioOS.Web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:${DEMO_WEB_PORT:-8082}:80"
+    volumes:
+      # Blazor WASM reads this file over HTTP at startup, so pointing the demo site at the demo
+      # API is a mounted file rather than a second image build. The baked-in copy names the main
+      # stack's API port and would otherwise send testers straight at the real database.
+      #
+      # Two copies ship, and DEMO_WEB_CONFIG picks one:
+      #   web-appsettings.Production.json   two ports on localhost, the default local run
+      #   web-appsettings.same-origin.json  empty ApiBaseUrl, i.e. "call the host that served
+      #                                     me" - for a reverse proxy publishing the site at /
+      #                                     and the API at /api on one name.
+      - ${DEMO_WEB_CONFIG:-./docker/demo/web-appsettings.Production.json}:/usr/share/nginx/html/appsettings.Production.json:ro
+
+volumes:
+  pgdata-demo:

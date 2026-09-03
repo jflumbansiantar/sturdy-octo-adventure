@@ -34,6 +34,9 @@ services:
       Jwt__ExpiryHours: "24"
       Auth__Username: admin
       Auth__Password: password
+      # The test-drive account runs in its own stack, against its own database:
+      # docker compose -f docker-compose.demo.yml up -d --build
+      Demo__Enabled: "false"
       Cors__AllowedOrigins__0: "http://localhost:8081"
     ports:
       - "5243:8080"

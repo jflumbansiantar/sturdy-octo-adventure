@@ -24,16 +24,34 @@ public sealed class UnauthorizedRedirectHandler(AuthService auth, NavigationMana
     {
         var response = await base.SendAsync(request, cancellationToken);
 
-        // The login call answers 401 for a wrong password. That is the page doing its job, and
-        // redirecting would replace its error message with a reload.
-        var isLogin = request.RequestUri?.AbsolutePath.EndsWith("/api/auth/login", StringComparison.OrdinalIgnoreCase) == true;
-
-        if (response.StatusCode == HttpStatusCode.Unauthorized && !isLogin)
+        if (response.StatusCode == HttpStatusCode.Unauthorized && !IsSelfHandled(request))
         {
+            // Read before clearing: a demo session that has been wiped server-side deserves to
+            // say so, rather than dumping the user on a bare login page mid-test.
+            var session = await auth.GetSessionAsync();
+
             await auth.ClearTokenAsync();
-            nav.NavigateTo("/login", forceLoad: true);
+            nav.NavigateTo(session.IsDemo ? "/login?notice=expired" : "/login", forceLoad: true);
         }
 
         return response;
+    }
+
+    /// <summary>
+    /// Calls whose own caller already deals with a 401.
+    /// </summary>
+    /// <remarks>
+    /// Login answers 401 for a wrong password - that is the page doing its job, and redirecting
+    /// would replace its error message with a reload. Logout can answer 401 when the session it
+    /// is ending has already expired, and the layout navigates itself afterwards; letting this
+    /// handler race it would swallow the "your data was deleted" notice.
+    /// </remarks>
+    private static bool IsSelfHandled(HttpRequestMessage request)
+    {
+        var path = request.RequestUri?.AbsolutePath;
+        if (path is null) return false;
+
+        return path.EndsWith("/api/auth/login", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith("/api/auth/logout", StringComparison.OrdinalIgnoreCase);
     }
 }

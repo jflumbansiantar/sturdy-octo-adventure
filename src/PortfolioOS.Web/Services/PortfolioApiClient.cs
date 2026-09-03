@@ -14,12 +14,69 @@ public class PortfolioApiClient(HttpClient http, AuthService auth)
     }
 
     // Auth
-    public async Task<LoginResponse?> LoginAsync(string username, string password)
+    public async Task<LoginOutcome> LoginAsync(string username, string password)
     {
         var resp = await http.PostAsJsonAsync("api/auth/login", new { username, password });
-        if (!resp.IsSuccessStatusCode) return null;
-        return await resp.Content.ReadFromJsonAsync<LoginResponse>();
+        if (resp.IsSuccessStatusCode)
+            return new LoginOutcome(await resp.Content.ReadFromJsonAsync<LoginResponse>(), null);
+
+        return new LoginOutcome(null, await ReadErrorAsync(resp));
     }
+
+    /// <summary>The fixed test-drive credentials, or null when the API has demo mode switched off.</summary>
+    public async Task<DemoInfoModel?> GetDemoInfoAsync()
+    {
+        try
+        {
+            return await http.GetFromJsonAsync<DemoInfoModel>("api/auth/demo");
+        }
+        catch
+        {
+            // An older API, or one that is simply down. The login page hides the demo card and
+            // still lets the owner sign in normally.
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Ends the session server-side. For the demo account this is what deletes its data.
+    /// </summary>
+    /// <returns>True when the server confirmed it deleted the session's data.</returns>
+    public async Task<bool> LogoutAsync()
+    {
+        await PrepareAsync();
+        try
+        {
+            var resp = await http.PostAsync("api/auth/logout", null);
+            if (!resp.IsSuccessStatusCode) return false;
+
+            var result = await resp.Content.ReadFromJsonAsync<LogoutResult>();
+            return result?.DataDeleted ?? false;
+        }
+        catch
+        {
+            // The token is cleared by the caller either way. An unreachable API only means the
+            // sandbox waits for the server's idle timeout instead of going now.
+            return false;
+        }
+    }
+
+    private static async Task<string?> ReadErrorAsync(HttpResponseMessage response)
+    {
+        try
+        {
+            var body = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+            return string.IsNullOrWhiteSpace(body?.Error) ? null : body.Error;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private record ErrorResponse(string? Error);
+
+    private record LogoutResult(bool DataDeleted);
 
     // Holdings
     public async Task<List<HoldingModel>> GetHoldingsAsync()

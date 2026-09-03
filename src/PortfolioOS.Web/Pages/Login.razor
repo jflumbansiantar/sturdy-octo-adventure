@@ -6,6 +6,12 @@
 <PageTitle>Login – PortfolioOS</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+
+    @if (_notice is not null)
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4" Dense="true">@_notice</MudAlert>
+    }
+
     <MudCard Elevation="4">
         <MudCardContent>
             <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-6">PortfolioOS</MudText>
@@ -21,24 +27,104 @@
         </MudCardContent>
         <MudCardActions Class="px-4 pb-4">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
-                       OnClick="LoginAsync" Disabled="_loading">
+                       OnClick="LoginAsync" Disabled="_busy">
                 @if (_loading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
                 Login
             </MudButton>
         </MudCardActions>
     </MudCard>
+
+    @if (_demo is { Enabled: true })
+    {
+        <MudDivider Class="my-6" />
+
+        <MudCard Elevation="2" Outlined="true">
+            <MudCardContent>
+                <div class="d-flex align-center mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Science" Color="Color.Info" Class="mr-2" />
+                    <MudText Typo="Typo.h6">Coba Dulu (Test Drive)</MudText>
+                </div>
+
+                <MudText Typo="Typo.body2" Class="mb-4">
+                    Belum punya akun? Masuk dengan akun test di bawah ini. Kamu dapat salinan data
+                    contoh sendiri dan bebas menambah, mengubah, atau menghapus apa pun.
+                </MudText>
+
+                <MudTextField Value="@_demo.Username" Label="Username akun test" Variant="Variant.Outlined"
+                              ReadOnly="true" Disabled="true" Class="mb-3" Margin="Margin.Dense"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person" />
+                <MudTextField Value="@_demo.Password" Label="Password akun test" Variant="Variant.Outlined"
+                              ReadOnly="true" Disabled="true" Class="mb-4" Margin="Margin.Dense"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Lock" />
+
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">
+                    <MudText Typo="Typo.subtitle2" Class="mb-1">Data test bersifat sementara</MudText>
+                    <ul class="ml-4">
+                        <li>Semua yang kamu masukkan tersimpan di database selama sesi berjalan.</li>
+                        <li><b>Terhapus permanen</b> saat kamu logout.</li>
+                        <li>Terhapus juga otomatis setelah @_demo.SessionMinutes menit,
+                            atau @_demo.IdleMinutes menit tanpa aktivitas.</li>
+                        <li>Akun test tidak bisa diubah dan tidak melihat data pengguna lain.</li>
+                    </ul>
+                </MudAlert>
+
+                @if (_demoError is not null)
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3">@_demoError</MudAlert>
+                }
+            </MudCardContent>
+            <MudCardActions Class="px-4 pb-4">
+                <MudButton Variant="Variant.Filled" Color="Color.Info" FullWidth="true"
+                           StartIcon="@Icons.Material.Filled.PlayArrow"
+                           OnClick="StartDemoAsync" Disabled="_busy">
+                    @if (_startingDemo)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        <span>Menyiapkan data test…</span>
+                    }
+                    else
+                    {
+                        <span>Mulai Test Drive</span>
+                    }
+                </MudButton>
+            </MudCardActions>
+        </MudCard>
+    }
 </MudContainer>
 
 @code {
+    /// <summary>Why the user was sent back here, set by the layout when a session ends.</summary>
+    [Parameter, SupplyParameterFromQuery(Name = "notice")]
+    public string? NoticeCode { get; set; }
+
     private string _username = "";
     private string _password = "";
     private string? _error;
+    private string? _demoError;
+    private string? _notice;
     private bool _loading;
+    private bool _startingDemo;
+    private DemoInfoModel? _demo;
+
+    /// <summary>Both buttons go quiet while either request is in flight.</summary>
+    private bool _busy => _loading || _startingDemo;
 
     protected override async Task OnInitializedAsync()
     {
         if (await AuthService.IsAuthenticatedAsync())
+        {
             Nav.NavigateTo("/");
+            return;
+        }
+
+        _notice = NoticeCode switch
+        {
+            "ended"   => "Sesi test drive selesai. Semua data yang kamu masukkan sudah dihapus.",
+            "expired" => "Sesi test drive berakhir karena batas waktu. Data yang kamu masukkan sudah dihapus.",
+            _         => null
+        };
+
+        _demo = await Api.GetDemoInfoAsync();
     }
 
     private async Task LoginAsync()
@@ -47,12 +133,47 @@
         _loading = true;
         var result = await Api.LoginAsync(_username, _password);
         _loading = false;
-        if (result is null)
+
+        if (!result.Succeeded)
         {
-            _error = "Invalid username or password.";
+            _error = result.Error ?? "Invalid username or password.";
             return;
         }
-        await AuthService.SetTokenAsync(result.Token);
+
+        await FinishAsync(result.Session!);
+    }
+
+    /// <summary>
+    /// Signs in with the advertised test credentials rather than whatever is in the form.
+    /// </summary>
+    /// <remarks>
+    /// The fields above are shown disabled and this reads past them, so there is no way to
+    /// aim the button at a different account. The real guarantee is on the server - the demo
+    /// password only ever opens a fresh sandbox - but the page should not invite the attempt.
+    /// </remarks>
+    private async Task StartDemoAsync()
+    {
+        if (_demo is null) return;
+
+        _demoError = null;
+        _startingDemo = true;
+
+        // Building the sandbox takes a moment: a schema is created, migrated and seeded.
+        var result = await Api.LoginAsync(_demo.Username, _demo.Password);
+        _startingDemo = false;
+
+        if (!result.Succeeded)
+        {
+            _demoError = result.Error ?? "Tidak bisa memulai sesi test drive. Coba lagi.";
+            return;
+        }
+
+        await FinishAsync(result.Session!);
+    }
+
+    private async Task FinishAsync(LoginResponse session)
+    {
+        await AuthService.SetTokenAsync(session.Token);
 
         // forceLoad matters: MainLayout decides whether to draw the app bar in its
         // OnInitializedAsync, which a client-side navigation does not re-run. Without the

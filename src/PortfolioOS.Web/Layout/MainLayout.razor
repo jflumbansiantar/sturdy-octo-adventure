@@ -1,16 +1,22 @@
 @inherits LayoutComponentBase
+@implements IAsyncDisposable
 @inject AuthService AuthService
 @inject NavigationManager Nav
 @inject AppState AppState
 @inject PortfolioApiClient Api
+@inject IJSRuntime JS
 
 @if (_checked && _authenticated)
 {
     <MudLayout>
-        <MudAppBar Elevation="1" Color="Color.Dark">
+        <MudAppBar Elevation="1" Color="@(_session.IsDemo ? Color.Info : Color.Dark)">
             <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
                            OnClick="@(() => _drawerOpen = !_drawerOpen)" />
             <MudText Typo="Typo.h6" Class="ml-2">PortfolioOS</MudText>
+            @if (_session.IsDemo)
+            {
+                <MudText Typo="Typo.caption" Class="ml-3 d-none d-sm-flex">TEST DRIVE</MudText>
+            }
             <MudSpacer />
             <MudButton Color="Color.Inherit" OnClick="ToggleCurrency"
                        Title="@($"1 USD = Rp {AppState.UsdIdrRate:N0}{(AppState.IsRateLive ? "" : " (kurs tersimpan)")}")">
@@ -18,7 +24,8 @@
             </MudButton>
             <MudIconButton Icon="@(AppState.PrivacyMode ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
                            Color="Color.Inherit" Title="Toggle Privacy" OnClick="AppState.TogglePrivacy" />
-            <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="LogoutAsync" />
+            <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit"
+                           OnClick="RequestLogoutAsync" />
         </MudAppBar>
 
         <MudDrawer @bind-Open="_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Always">
@@ -27,10 +34,52 @@
 
         <MudMainContent>
             <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-4">
+                @if (_session is { IsDemo: true, ExpiresAt: not null })
+                {
+                    <DemoSessionBanner ExpiresAt="_session.ExpiresAt.Value" OnExpired="OnSessionExpiredAsync" />
+                }
                 @Body
             </MudContainer>
         </MudMainContent>
     </MudLayout>
+
+    <MudDialog @bind-Visible="_showLogoutDialog">
+        <TitleContent>
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Color="Color.Warning" Class="mr-2" />
+                Akhiri sesi test drive?
+            </MudText>
+        </TitleContent>
+        <DialogContent>
+            <MudText Typo="Typo.body1" Class="mb-3">
+                Begitu kamu logout, <b>semua data yang kamu masukkan selama sesi ini dihapus permanen</b>
+                dari database dan tidak bisa dikembalikan:
+            </MudText>
+            <MudText Typo="Typo.body2" Class="mb-3">
+                <ul class="ml-4">
+                    <li>Holdings, transaksi, dan utang yang kamu tambah atau ubah</li>
+                    <li>Akun serta jurnal ledger yang kamu buat</li>
+                    <li>Perubahan pengaturan di sesi ini</li>
+                </ul>
+            </MudText>
+            <MudAlert Severity="Severity.Info" Dense="true">
+                Sesi berikutnya dimulai lagi dari data contoh yang sama.
+            </MudAlert>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _showLogoutDialog = false)" Disabled="_loggingOut">
+                Batal, lanjut test
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="ConfirmLogoutAsync"
+                       Disabled="_loggingOut" StartIcon="@Icons.Material.Filled.DeleteForever">
+                @if (_loggingOut)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Logout &amp; hapus data
+            </MudButton>
+        </DialogActions>
+    </MudDialog>
 }
 else if (_checked && Nav.Uri.Contains("/login"))
 {
@@ -41,6 +90,10 @@ else if (_checked && Nav.Uri.Contains("/login"))
     private bool _drawerOpen = true;
     private bool _checked;
     private bool _authenticated;
+    private bool _showLogoutDialog;
+    private bool _loggingOut;
+    private bool _unloadWarningArmed;
+    private SessionInfo _session = new(false, null);
 
     protected override async Task OnInitializedAsync()
     {
@@ -55,6 +108,8 @@ else if (_checked && Nav.Uri.Contains("/login"))
             return;
         }
 
+        _session = await AuthService.GetSessionAsync();
+
         // Fetched once per session: the toggle needs a rate before it can show dollars, and
         // every page reads it from AppState rather than calling the API itself.
         var fx = await Api.GetExchangeRateAsync();
@@ -62,11 +117,77 @@ else if (_checked && Nav.Uri.Contains("/login"))
             AppState.SetRate(fx.Rate, fx.AsOf, fx.IsLive);
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_session.IsDemo || _unloadWarningArmed) return;
+
+        // Closing the tab does not end the session server-side, so the browser prompt is the
+        // only thing standing between a tester and the belief that their data was saved.
+        await JS.InvokeVoidAsync("portfolioDemo.armUnloadWarning");
+        _unloadWarningArmed = true;
+    }
+
     private void ToggleCurrency() => AppState.ToggleCurrency();
 
-    private async Task LogoutAsync()
+    /// <summary>
+    /// The app-bar logout. A demo session is asked to confirm first; the owner's is not.
+    /// </summary>
+    private async Task RequestLogoutAsync()
     {
-        await AuthService.ClearTokenAsync();
-        Nav.NavigateTo("/login");
+        if (_session.IsDemo)
+        {
+            _showLogoutDialog = true;
+            return;
+        }
+
+        await EndSessionAsync(notice: null, callApi: true);
     }
+
+    private async Task ConfirmLogoutAsync()
+    {
+        _loggingOut = true;
+        await EndSessionAsync(notice: "ended", callApi: true);
+    }
+
+    /// <summary>
+    /// The countdown hit zero: the server has already stopped honouring this token, and the
+    /// janitor is dropping the sandbox. Nothing to ask and nothing to call - just get the user
+    /// to the login page with an explanation instead of a wall of failed requests.
+    /// </summary>
+    private Task OnSessionExpiredAsync() => EndSessionAsync(notice: "expired", callApi: false);
+
+    private async Task EndSessionAsync(string? notice, bool callApi)
+    {
+        // Disarmed first: the user asked to leave, so the browser must not also nag them about
+        // it on the way out.
+        await DisarmUnloadWarningAsync();
+
+        // This is the call that deletes a demo sandbox. It is best-effort - a failure leaves
+        // the data to the server's idle timeout - so the token is cleared either way.
+        if (callApi)
+            await Api.LogoutAsync();
+
+        await AuthService.ClearTokenAsync();
+
+        // forceLoad so the layout is rebuilt as anonymous; a client-side navigation would leave
+        // the login page wrapped in this app bar and drawer.
+        Nav.NavigateTo(notice is null ? "/login" : $"/login?notice={notice}", forceLoad: true);
+    }
+
+    private async Task DisarmUnloadWarningAsync()
+    {
+        if (!_unloadWarningArmed) return;
+
+        _unloadWarningArmed = false;
+        try
+        {
+            await JS.InvokeVoidAsync("portfolioDemo.disarmUnloadWarning");
+        }
+        catch (JSDisconnectedException)
+        {
+            // The page is already going away, which is the one case where this does not matter.
+        }
+    }
+
+    public async ValueTask DisposeAsync() => await DisarmUnloadWarningAsync();
 }

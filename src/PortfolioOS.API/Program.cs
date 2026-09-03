@@ -6,6 +6,7 @@ using PortfolioOS.API.Middleware;
 using PortfolioOS.API.Services;
 using PortfolioOS.Application;
 using PortfolioOS.Infrastructure;
+using PortfolioOS.Infrastructure.Demo;
 using PortfolioOS.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -74,6 +75,9 @@ builder.Services.AddHttpClient();
 // model has not been downloaded - see ChatIndexBackgroundService.
 builder.Services.AddHostedService<ChatIndexBackgroundService>();
 
+// Reclaims the schemas of demo sessions nobody logged out of.
+builder.Services.AddHostedService<DemoSessionJanitor>();
+
 var app = builder.Build();
 
 // Apply pending migrations and seed initial data
@@ -83,6 +87,9 @@ using (var scope = app.Services.CreateScope())
     await db.Database.MigrateAsync();
     await DataSeeder.SeedAsync(db);
 }
+
+// Creates the demo registry and clears sandboxes left over from a previous run.
+await app.Services.GetRequiredService<DemoSessionManager>().InitializeAsync();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
@@ -95,6 +102,11 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors();
 app.UseAuthentication();
+
+// Between the two on purpose: it reads the token's claims, and everything downstream - every
+// controller, every DbContext - depends on the schema it binds.
+app.UseMiddleware<DemoSessionMiddleware>();
+
 app.UseAuthorization();
 app.MapControllers();
 

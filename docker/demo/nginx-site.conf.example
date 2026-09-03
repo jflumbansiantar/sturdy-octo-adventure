@@ -1,0 +1,57 @@
+# Contoh blok reverse proxy nginx untuk stack test drive.
+#
+# Salin ke /etc/nginx/sites-available/ (atau conf.d/) di VPS, ganti nama domainnya, lalu:
+#   sudo nginx -t && sudo systemctl reload nginx
+#
+# Yang membuat susunan ini bekerja: situs dan API dilayani dari SATU nama host. Blazor WASM
+# memanggil path relatif "api/..." terhadap alamat halamannya sendiri, sehingga dengan
+# DEMO_WEB_CONFIG=./docker/demo/web-appsettings.same-origin.json tidak ada nama host yang
+# perlu ditulis di mana pun — dan karena tidak ada request lintas origin, CORS tidak ikut
+# bermain sama sekali.
+#
+# Port 8082/5343 di bawah adalah DEMO_WEB_PORT dan DEMO_API_PORT dari .env.demo. Keduanya
+# hanya mendengarkan di 127.0.0.1, jadi proxy inilah satu-satunya jalan masuk dari luar.
+
+server {
+    listen 80;
+    server_name demo.contohdomain.com;
+
+    # Sertifikat: jalankan `sudo certbot --nginx -d demo.contohdomain.com`, certbot akan
+    # menulis ulang blok ini jadi 443 + redirect. Sampai itu dilakukan, situs berjalan
+    # polos di HTTP dan password akun demo lewat tanpa enkripsi.
+
+    # Dokumen di-parse di browser, tapi hasil parse-nya dikirim sebagai satu body JSON.
+    # Default nginx 1 MB terlalu kecil untuk laporan broker yang panjang.
+    client_max_body_size 20m;
+
+    # API. Tanpa garis miring di akhir proxy_pass, supaya /api/holdings diteruskan apa adanya
+    # sebagai /api/holdings — itu memang path route di controller.
+    location /api/ {
+        proxy_pass http://127.0.0.1:5343;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Jawaban pertama asisten chat menunggu model embedding ~490MB selesai dimuat.
+        proxy_read_timeout 120s;
+    }
+
+    # Swagger. Hapus blok ini kalau DEMO_ASPNETCORE_ENVIRONMENT=Production (Swagger mati) atau
+    # kalau memang tidak ingin dokumentasi API terbuka untuk umum.
+    location /swagger {
+        proxy_pass http://127.0.0.1:5343;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Situs. nginx di dalam container web yang mengurus fallback SPA dan tipe MIME .wasm/.dll,
+    # jadi proxy ini cukup meneruskan saja — jangan tambahkan `types {}` atau try_files di sini.
+    location / {
+        proxy_pass http://127.0.0.1:8082;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

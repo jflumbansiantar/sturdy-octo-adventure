@@ -1,11 +1,18 @@
 using System.Text.Json;
 using Microsoft.JSInterop;
+using PortfolioOS.Web.Models;
 
 namespace PortfolioOS.Web.Services;
 
 public class AuthService(IJSRuntime js)
 {
     private const string TokenKey = "portfolioos_token";
+
+    /// <summary>Claim the API stamps on every token: <c>owner</c> or <c>demo</c>.</summary>
+    private const string RoleClaim = "pos_role";
+
+    private const string DemoRole = "demo";
+
     private string? _cachedToken;
 
     public async Task<string?> GetTokenAsync()
@@ -43,6 +50,29 @@ public class AuthService(IJSRuntime js)
         return expiry > DateTimeOffset.UtcNow.AddMinutes(-1);
     }
 
+    /// <summary>
+    /// What kind of session the stored token represents, read from the token itself.
+    /// </summary>
+    /// <remarks>
+    /// Read from the JWT rather than kept alongside it in local storage so there is one source
+    /// of truth. A separate "is demo" flag could survive a logout, or disagree with the token
+    /// after one is replaced - and the whole demo warning hangs on this answer being right.
+    /// </remarks>
+    public async Task<SessionInfo> GetSessionAsync()
+    {
+        var token = await GetTokenAsync();
+        if (string.IsNullOrEmpty(token)) return new SessionInfo(false, null);
+
+        using var payload = ReadPayload(token);
+        if (payload is null) return new SessionInfo(false, null);
+
+        var isDemo = payload.RootElement.TryGetProperty(RoleClaim, out var role) &&
+                     role.ValueKind == JsonValueKind.String &&
+                     role.GetString() == DemoRole;
+
+        return new SessionInfo(isDemo, ReadExpiry(payload));
+    }
+
     public async Task SetTokenAsync(string token)
     {
         _cachedToken = token;
@@ -55,8 +85,19 @@ public class AuthService(IJSRuntime js)
         await js.InvokeVoidAsync("localStorage.removeItem", TokenKey);
     }
 
-    /// <summary>Reads the <c>exp</c> claim out of a JWT without validating its signature.</summary>
     private static DateTimeOffset? ReadExpiry(string token)
+    {
+        using var payload = ReadPayload(token);
+        return payload is null ? null : ReadExpiry(payload);
+    }
+
+    private static DateTimeOffset? ReadExpiry(JsonDocument payload) =>
+        payload.RootElement.TryGetProperty("exp", out var exp) && exp.TryGetInt64(out var seconds)
+            ? DateTimeOffset.FromUnixTimeSeconds(seconds)
+            : null;
+
+    /// <summary>Decodes a JWT's claims without validating its signature.</summary>
+    private static JsonDocument? ReadPayload(string token)
     {
         try
         {
@@ -66,10 +107,7 @@ public class AuthService(IJSRuntime js)
             var payload = parts[1].Replace('-', '+').Replace('_', '/');
             payload = payload.PadRight(payload.Length + (4 - payload.Length % 4) % 4, '=');
 
-            using var doc = JsonDocument.Parse(Convert.FromBase64String(payload));
-            return doc.RootElement.TryGetProperty("exp", out var exp) && exp.TryGetInt64(out var seconds)
-                ? DateTimeOffset.FromUnixTimeSeconds(seconds)
-                : null;
+            return JsonDocument.Parse(Convert.FromBase64String(payload));
         }
         catch
         {

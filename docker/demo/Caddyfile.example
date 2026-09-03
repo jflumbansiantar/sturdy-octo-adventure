@@ -1,0 +1,26 @@
+# Contoh blok reverse proxy Caddy untuk stack test drive — padanan dari
+# nginx-site.conf.example, kalau proxy di VPS-mu Caddy. Caddy mengurus sertifikat
+# Let's Encrypt sendiri, jadi tidak ada langkah certbot.
+#
+# Tambahkan ke /etc/caddy/Caddyfile lalu: sudo systemctl reload caddy
+
+demo.contohdomain.com {
+	# Urutan penting: yang paling spesifik lebih dulu.
+	handle /api/* {
+		reverse_proxy 127.0.0.1:5343
+	}
+
+	# Hapus kalau DEMO_ASPNETCORE_ENVIRONMENT=Production atau Swagger tidak ingin dibuka umum.
+	handle /swagger* {
+		reverse_proxy 127.0.0.1:5343
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:8082
+	}
+
+	request_body {
+		# Hasil parse dokumen dikirim sebagai satu body JSON.
+		max_size 20MB
+	}
+}

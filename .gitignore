@@ -68,3 +68,5 @@ tests/**/[Oo]bj/
 src/PortfolioOS.API/models/
 
 appsettings.json
+# Env stack demo untuk server (lihat .env.demo.example)
+.env.demo
