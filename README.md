@@ -1,6 +1,6 @@
 # PortfolioOS — Mini Wealth Management
 
-Aplikasi manajemen kekayaan pribadi berbasis web dan mobile. Fitur utama mencakup portofolio saham multi-market (US & IDR), pelacakan transaksi, manajemen utang, pembukuan double-entry, integrasi harga pasar real-time via Yahoo Finance, dan input transaksi dengan memotret dokumen (OCR on-device di aplikasi mobile).
+Aplikasi manajemen kekayaan pribadi berbasis web dan mobile. Fitur utama mencakup portofolio saham multi-market (US & IDR), pelacakan transaksi, manajemen utang, pembukuan double-entry, integrasi harga pasar real-time via Yahoo Finance, saran jumlah tabungan bulanan, dan input transaksi dengan memotret dokumen (OCR on-device di aplikasi mobile).
 
 ---
 
@@ -59,6 +59,7 @@ PortfolioOS.sln
 │   │   ├── Transactions/       # CreateTransaction, DeleteTransaction, GetTransactions
 │   │   ├── Debts/              # CreateDebt, UpdateDebt, DeleteDebt, GetDebts
 │   │   ├── Portfolio/          # GetPortfolioSummary
+│   │   ├── Savings/            # GetSavingsSuggestion + SavingsAdvisor (50/30/20 + MPS + SMarT)
 │   │   ├── Performance/        # GetPerformance
 │   │   ├── Market/             # GetQuote, RefreshPrices
 │   │   ├── Ledger/             # CreateAccount, CreateJournalEntry, GetLedger
@@ -85,7 +86,7 @@ PortfolioOS.sln
 │   │   └── appsettings.json
 │   │
 │   ├── PortfolioOS.Web/        # Blazor WASM
-│   │   └── Pages/              # Dashboard, Holdings, Transactions, Debts, Ledger
+│   │   └── Pages/              # Dashboard, Holdings, Transactions, Debts, Ledger, Savings
 │   │
 │   └── PortfolioOS.Mobile/     # .NET MAUI
 │       ├── Pages/              # LoginPage, DashboardPage, HoldingsPage, ScanReviewPage, ...
@@ -102,6 +103,29 @@ PortfolioOS.sln
     ├── PortfolioOS.Application.Tests/   # Unit tests — Holdings, Transactions
     └── PortfolioOS.API.Tests/           # Integration tests
 ```
+
+---
+
+## Saran Tabungan
+
+Halaman **Tabungan** (`/savings`, `GET /api/savings/suggestion?months=6`) menjawab satu pertanyaan:
+berapa yang realistis disisihkan bulan ini. Angkanya dihitung dari riwayat transaksi Income,
+Expense, dan Debt — tidak ada input manual — dengan menggabungkan tiga metode yang masing-masing
+menjawab hal berbeda:
+
+| Metode | Menjawab | Perannya dalam rumus |
+|---|---|---|
+| **Alokasi proporsional 50/30/20** | Berapa yang *seharusnya* ditabung | Jangkar normatif: 20% pemasukan, dibatasi kapasitas nyata (kebutuhan tidak boleh diganggu, gaya hidup paling banyak dipangkas separuh) |
+| **Proporsi konsumsi Keynesian (MPS)** | Berapa yang *nyatanya* ditabung | Regresi `C = a + b·Y` atas bulan-bulan yang tercatat, lalu `S = (1 − b)·Y − a`. Bobotnya mengikuti R² dan panjang riwayat, maksimal 50% |
+| **Save More Tomorrow (SMarT)** | Seberapa *cepat* naiknya | Tidak menentukan target, hanya jalurnya: 50% dari kenaikan pemasukan + eskalasi 1% pemasukan per bulan, sehingga uang belanja hari ini tidak dipotong |
+
+```
+Target   = (1 − w) × Alokasi50/30/20 + w × MPS,   w = 0,5 × keyakinan regresi
+Bulan ini = Tabungan sekarang + 50% kenaikan gaji + 1% pemasukan   (dibatasi Target)
+```
+
+Semua konstanta ada di `SavingsPolicy`; perhitungannya murni di `SavingsAdvisor` sehingga bisa
+diuji tanpa database.
 
 ---
 

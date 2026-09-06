@@ -19,21 +19,56 @@
                 <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
             }
         </MudCardContent>
-        <MudCardActions Class="px-4 pb-4">
+        <MudCardActions Class="px-4 pb-2">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
                        OnClick="LoginAsync" Disabled="_loading">
                 @if (_loading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
                 Login
             </MudButton>
         </MudCardActions>
+        <div class="d-flex justify-center pb-4">
+            <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="@(() => _showRecovery = true)">
+                Forgot password?
+            </MudButton>
+        </div>
     </MudCard>
 </MudContainer>
+
+@*
+    Deliberately instructions rather than a reset flow. There is no account to reset: the API
+    checks one administrator credential read from its own configuration, so there is no address
+    to mail a link to and nothing in a database to overwrite. Saying where the value lives is
+    the only honest answer, and it gives away nothing - anyone who can read that file already
+    has the password itself.
+*@
+<MudDialog @bind-Visible="_showRecovery">
+    <TitleContent><MudText Typo="Typo.h6">Forgot password?</MudText></TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">
+            There is no reset e-mail to send. PortfolioOS keeps no user accounts - it checks the
+            single administrator credential held in the API's configuration, so recovering access
+            means setting a new one on the machine running the API.
+        </MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">
+            Set <code>Auth__Password</code> as an environment variable, or edit
+            <code>Auth:Password</code> in <code>src/PortfolioOS.API/appsettings.json</code>. The
+            username sits beside it as <code>Auth:Username</code>.
+        </MudText>
+        <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+            Restart the API afterwards - the value is read once, at startup.
+        </MudAlert>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showRecovery = false)">Close</MudButton>
+    </DialogActions>
+</MudDialog>
 
 @code {
     private string _username = "";
     private string _password = "";
     private string? _error;
     private bool _loading;
+    private bool _showRecovery;
 
     protected override async Task OnInitializedAsync()
     {

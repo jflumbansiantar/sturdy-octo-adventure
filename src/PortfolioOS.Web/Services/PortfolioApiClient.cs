@@ -101,6 +101,13 @@ public class PortfolioApiClient(HttpClient http, AuthService auth)
         resp.EnsureSuccessStatusCode();
     }
 
+    // Savings
+    public async Task<SavingsSuggestionModel?> GetSavingsSuggestionAsync(int months = 6)
+    {
+        await PrepareAsync();
+        return await http.GetFromJsonAsync<SavingsSuggestionModel>($"api/savings/suggestion?months={months}");
+    }
+
     // Ledger - Accounts
     public async Task<List<LedgerAccountModel>> GetAccountsAsync()
     {
