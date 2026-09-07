@@ -30,6 +30,10 @@
                 @Body
             </MudContainer>
         </MudMainContent>
+
+        @* Inside the authenticated branch on purpose: it asks questions about the user's own
+           data, so it has no business floating over the login form. *@
+        <AssistantFab />
     </MudLayout>
 }
 else if (_checked && Nav.Uri.Contains("/login"))

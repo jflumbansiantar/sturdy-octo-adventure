@@ -1,0 +1,54 @@
+/* Above the drawer (1200) so the button stays reachable with the menu open, but below
+   dialogs and snackbars (1400+) so it never covers a message the user has to answer. */
+.assistant-dock {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 1250;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 12px;
+}
+
+.assistant-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 1249;
+}
+
+/* Everything below dresses elements MudBlazor renders, not markup written in this component,
+   so it has to go through ::deep - CSS isolation only stamps its scope on our own tags. */
+.assistant-dock ::deep .assistant-panel {
+    /* Narrow enough to sit beside the content on a desktop, never wider than a phone. */
+    width: 320px;
+    max-width: calc(100vw - 48px);
+    max-height: calc(100vh - 160px);
+    overflow-y: auto;
+    border-radius: 12px;
+}
+
+/* The chips carry whole sentences. MudBlazor pins a chip to one nowrap line 32px tall, which
+   would clip every one of them. */
+.assistant-dock ::deep .assistant-panel .mud-chip {
+    height: auto;
+    min-height: 32px;
+    width: 100%;
+    margin: 0;
+    padding: 6px 12px;
+    white-space: normal;
+    text-align: left;
+    justify-content: flex-start;
+    line-height: 1.35;
+}
+
+.assistant-dock ::deep .assistant-panel .mud-chip-content {
+    height: auto;
+}
+
+@media (max-width: 640px) {
+    .assistant-dock {
+        right: 16px;
+        bottom: 16px;
+    }
+}

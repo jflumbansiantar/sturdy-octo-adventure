@@ -6,6 +6,7 @@
 @inject PortfolioApiClient Api
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
+@inject AssistantState Assistant
 
 <PageTitle>Asisten - PortfolioOS</PageTitle>
 
@@ -25,7 +26,7 @@
             <MudIcon Icon="@Icons.Material.Filled.Forum" Size="Size.Large" Class="mb-3 mud-text-secondary" />
             <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">Coba salah satu pertanyaan ini:</MudText>
             <div class="d-flex flex-wrap justify-center" style="gap:8px;max-width:640px;">
-                @foreach (var starter in Starters)
+                @foreach (var starter in AssistantState.Starters)
                 {
                     <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined"
                              OnClick="@(() => SendAsync(starter))">@starter</MudChip>
@@ -129,9 +130,25 @@
     private bool _sending;
     private ElementReference _log;
     private bool _scrollPending;
+    private string? _queued;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        // The floating button parks the question it was asked and sends the user here. Asking
+        // it is left to the first render so the page paints before the request goes out.
+        _queued = Assistant.TakePending();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender && _queued is { } question)
+        {
+            _queued = null;
+            await SendAsync(question);
+        }
+
         // Scrolling has to happen after the new message is in the DOM, so it is deferred to
         // the render that follows rather than done inside SendAsync.
         if (!_scrollPending) return;
@@ -139,14 +156,6 @@
 
         await JS.InvokeVoidAsync("portfolioOsChat.scrollToBottom", _log);
     }
-
-    private static readonly string[] Starters =
-    [
-        "Berapa total nilai portofolio saya?",
-        "Utang mana yang bunganya paling tinggi?",
-        "Berapa pengeluaran saya bulan lalu?",
-        "Berapa kekayaan bersih saya?",
-    ];
 
     private async Task OnKeyDown(KeyboardEventArgs e)
     {
@@ -163,6 +172,7 @@
         _question = string.Empty;
         _sending = true;
         _scrollPending = true;
+        StateHasChanged();
 
         try
         {
@@ -180,6 +190,7 @@
         {
             _sending = false;
             _scrollPending = true;
+            StateHasChanged();
         }
     }
 }

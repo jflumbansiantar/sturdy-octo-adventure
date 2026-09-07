@@ -14,6 +14,7 @@ var apiBase = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7195";
 
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<AppState>();
+builder.Services.AddScoped<AssistantState>();
 builder.Services.AddScoped<UnauthorizedRedirectHandler>();
 builder.Services.AddScoped(sp =>
 {
