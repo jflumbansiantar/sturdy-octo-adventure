@@ -1,0 +1,101 @@
+@implements IDisposable
+@inject NavigationManager Nav
+@inject AssistantState Assistant
+
+@* Hidden on the assistant page itself: the same starters already sit in the empty chat log,
+   and the button would only cover the message box. *@
+@if (!_onAssistantPage)
+{
+    @* Catches clicks anywhere else on the page so the panel closes like a menu would. *@
+    @if (_open)
+    {
+        <div class="assistant-scrim" @onclick="Close"></div>
+    }
+
+    @* Escape is handled here rather than on the panel: the button is inside this element and
+       keeps focus after being clicked, so the keypress bubbles up to this handler either way. *@
+    <div class="assistant-dock" tabindex="-1" @onkeydown="OnKeyDown">
+        @if (_open)
+        {
+            <MudPaper Class="pa-4 assistant-panel" Elevation="8">
+                <MudText Typo="Typo.subtitle2">Asisten</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Coba salah satu pertanyaan ini:</MudText>
+
+                <div class="d-flex flex-column align-stretch mt-3" style="gap:8px;">
+                    @foreach (var starter in AssistantState.StartersFor(_route))
+                    {
+                        <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined"
+                                 OnClick="@(() => Ask(starter))">@starter</MudChip>
+                    }
+                </div>
+
+                <MudDivider Class="my-3" />
+
+                <MudButton Variant="Variant.Text" Color="Color.Primary" FullWidth
+                           StartIcon="@Icons.Material.Filled.Forum" OnClick="OpenAssistant">
+                    Tulis pertanyaan sendiri
+                </MudButton>
+            </MudPaper>
+        }
+
+        @* Lower-case title/aria-label: MudBlazor's analyzer flags the PascalCase spelling of a
+           pass-through HTML attribute (MUD0002). *@
+        <MudFab Color="Color.Primary"
+                StartIcon="@(_open ? Icons.Material.Filled.Close : Icons.Material.Filled.Forum)"
+                title="Asisten" aria-label="Asisten" OnClick="Toggle" />
+    </div>
+}
+
+@code {
+    private bool _open;
+    private bool _onAssistantPage;
+    private string _route = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+        ReadRoute();
+    }
+
+    /// <summary>
+    /// The current page as a bare relative path - "" for the dashboard, "debts" for the debts
+    /// page. The query and fragment are cut off so "/debts?sort=due" still finds its questions.
+    /// </summary>
+    private void ReadRoute()
+    {
+        var path = Nav.ToBaseRelativePath(Nav.Uri).TrimStart('/');
+        var cut = path.IndexOfAny(['?', '#']);
+        _route = cut < 0 ? path : path[..cut];
+        _onAssistantPage = _route.StartsWith("chat", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        // A panel left open across a navigation would hang over the page the user just asked
+        // for, so every move closes it.
+        _open = false;
+        ReadRoute();
+        StateHasChanged();
+    }
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (_open && e.Key == "Escape") _open = false;
+    }
+
+    private void Toggle() => _open = !_open;
+
+    private void Close() => _open = false;
+
+    private void Ask(string question)
+    {
+        // Park the question, then go to the assistant - the chat page is what actually asks it,
+        // so the answer lands in the conversation rather than in a popup with no history.
+        Assistant.Queue(question);
+        Nav.NavigateTo("chat");
+    }
+
+    private void OpenAssistant() => Nav.NavigateTo("chat");
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+}

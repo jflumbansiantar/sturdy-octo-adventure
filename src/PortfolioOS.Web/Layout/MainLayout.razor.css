@@ -75,3 +75,10 @@ main {
         padding-right: 1.5rem !important;
     }
 }
+
+/* Room to scroll clear of the floating assistant button, which covers the bottom-right corner
+   of every page. Sits on this wrapper rather than on the container's own padding, which
+   MudBlazor's pa-4 declares !important. */
+.page-shell {
+    padding-bottom: 80px;
+}

@@ -26,10 +26,19 @@
         </MudDrawer>
 
         <MudMainContent>
-            <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-4">
-                @Body
-            </MudContainer>
+            @* A plain element on purpose: CSS isolation only stamps its scope on tags written
+               in this file, so this is what the stylesheet can reach - MudContainer renders a
+               div of its own that no scoped rule can touch. *@
+            <div class="page-shell">
+                <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-4">
+                    @Body
+                </MudContainer>
+            </div>
         </MudMainContent>
+
+        @* Inside the authenticated branch on purpose: it asks questions about the user's own
+           data, so it has no business floating over the login form. *@
+        <AssistantFab />
     </MudLayout>
 }
 else if (_checked && Nav.Uri.Contains("/login"))
@@ -55,6 +64,11 @@ else if (_checked && Nav.Uri.Contains("/login"))
             return;
         }
 
+        // Anonymous visitors stop here. The FX endpoint requires a token, and a 401 sends
+        // UnauthorizedRedirectHandler into a forced reload of /login - which runs this method
+        // again, reloading forever and never letting the login form appear.
+        if (!_authenticated) return;
+
         // Fetched once per session: the toggle needs a rate before it can show dollars, and
         // every page reads it from AppState rather than calling the API itself.
         var fx = await Api.GetExchangeRateAsync();
@@ -67,6 +81,12 @@ else if (_checked && Nav.Uri.Contains("/login"))
     private async Task LogoutAsync()
     {
         await AuthService.ClearTokenAsync();
+
+        // Dropping the flag is what actually signs them out on screen. Whether to draw the app
+        // bar and drawer is decided in OnInitializedAsync, which a client-side navigation does
+        // not re-run - so leaving it set keeps the whole chrome wrapped around the login form,
+        // nav links still clickable, as though the session were alive.
+        _authenticated = false;
         Nav.NavigateTo("/login");
     }
 }

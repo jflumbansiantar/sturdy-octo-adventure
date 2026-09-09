@@ -28,7 +28,12 @@ public sealed class UnauthorizedRedirectHandler(AuthService auth, NavigationMana
         // redirecting would replace its error message with a reload.
         var isLogin = request.RequestUri?.AbsolutePath.EndsWith("/api/auth/login", StringComparison.OrdinalIgnoreCase) == true;
 
-        if (response.StatusCode == HttpStatusCode.Unauthorized && !isLogin)
+        // Already on the login page, so there is nowhere left to send them. A forced reload here
+        // restarts the app, which repeats the request, which answers 401 again: the page reloads
+        // forever and the login form never gets a frame in which to appear.
+        var onLoginPage = nav.Uri.Contains("/login", StringComparison.OrdinalIgnoreCase);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized && !isLogin && !onLoginPage)
         {
             await auth.ClearTokenAsync();
             nav.NavigateTo("/login", forceLoad: true);
