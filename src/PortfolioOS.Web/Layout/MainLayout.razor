@@ -26,9 +26,14 @@
         </MudDrawer>
 
         <MudMainContent>
-            <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-4">
-                @Body
-            </MudContainer>
+            @* A plain element on purpose: CSS isolation only stamps its scope on tags written
+               in this file, so this is what the stylesheet can reach - MudContainer renders a
+               div of its own that no scoped rule can touch. *@
+            <div class="page-shell">
+                <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-4">
+                    @Body
+                </MudContainer>
+            </div>
         </MudMainContent>
 
         @* Inside the authenticated branch on purpose: it asks questions about the user's own

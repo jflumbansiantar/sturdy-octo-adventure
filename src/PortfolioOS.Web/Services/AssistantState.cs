@@ -1,17 +1,20 @@
+using PortfolioOS.Web.Models;
+
 namespace PortfolioOS.Web.Services;
 
 /// <summary>
-/// Hand-off between the floating assistant button and the chat page.
+/// The assistant's state, held outside the chat page so it survives navigation.
 ///
-/// The button sits in the layout, so it can be pressed from any page - but the answer belongs
-/// on /chat, where the conversation lives. The picked question is parked here, the button
-/// navigates, and the chat page reads it back on its first render and asks it.
+/// Two things live here. The conversation itself, because the floating button turned /chat
+/// into somewhere users pass through rather than sit - a page-local list would be emptied by
+/// every trip back to the dashboard. And the hand-off for a question picked from that button:
+/// it is parked here, the button navigates, and the chat page asks it on arrival.
 /// </summary>
 public class AssistantState
 {
     /// <summary>
-    /// The quick questions offered by the floating button and by the empty chat log. Kept in
-    /// one place so the two lists cannot drift apart.
+    /// Shown when there is no better reason to show anything else - the chat page's empty log,
+    /// and pages with no questions of their own.
     /// </summary>
     public static readonly string[] Starters =
     [
@@ -20,6 +23,74 @@ public class AssistantState
         "Berapa pengeluaran saya bulan lalu?",
         "Berapa kekayaan bersih saya?",
     ];
+
+    /// <summary>
+    /// What to offer on each page. Someone looking at their debts is far likelier to want a
+    /// debt question than the same four questions the dashboard offers.
+    /// </summary>
+    /// <remarks>
+    /// Every string is copied verbatim from an <c>IntentDefinition.CanonicalQuestion</c> in the
+    /// API's IntentCatalog, so each one is guaranteed to clear the router's score gate. The
+    /// catalogue is not exposed over HTTP, so this is a copy rather than a fetch - the same
+    /// trade this client already makes for its view models. Reword one of these only by
+    /// copying the API's new wording, or the question stops routing.
+    /// </remarks>
+    private static readonly Dictionary<string, string[]> ByRoute = new(StringComparer.OrdinalIgnoreCase)
+    {
+        [""] = Starters,   // dashboard: a spread across all four areas
+        ["holdings"] =
+        [
+            "Berapa total nilai portofolio saya?",
+            "Bagaimana komposisi portofolio saya?",
+            "Saham apa yang paling banyak bergerak hari ini?",
+            "Berapa kekayaan bersih saya?",
+        ],
+        ["transactions"] =
+        [
+            "Berapa pengeluaran saya bulan lalu?",
+            "Pengeluaran saya paling besar di kategori apa?",
+            "Apa saja transaksi terakhir saya?",
+            "Berapa kekayaan bersih saya?",
+        ],
+        ["market"] =
+        [
+            "Berapa kurs dolar sekarang?",
+            "Saham apa yang paling banyak bergerak hari ini?",
+            "Berapa total nilai portofolio saya?",
+            "Bagaimana komposisi portofolio saya?",
+        ],
+        ["ledger"] =
+        [
+            "Berapa kekayaan bersih saya?",
+            "Berapa saldo kas saya?",
+            "Pengeluaran saya paling besar di kategori apa?",
+            "Berapa total utang saya?",
+        ],
+        ["debts"] =
+        [
+            "Berapa total utang saya?",
+            "Utang mana yang bunganya paling tinggi?",
+            "Tagihan apa yang jatuh tempo dalam waktu dekat?",
+            "Berapa kekayaan bersih saya?",
+        ],
+        ["savings"] =
+        [
+            "Berapa pengeluaran saya bulan lalu?",
+            "Pengeluaran saya paling besar di kategori apa?",
+            "Berapa saldo kas saya?",
+            "Berapa kekayaan bersih saya?",
+        ],
+    };
+
+    /// <param name="route">Path relative to the app base, without leading slash or query.</param>
+    public static IReadOnlyList<string> StartersFor(string route) =>
+        ByRoute.TryGetValue(route, out var starters) ? starters : Starters;
+
+    /// <summary>
+    /// The conversation on screen. Public and mutable because the chat page owns the asking -
+    /// this class only outlives it.
+    /// </summary>
+    public List<ChatMessage> Messages { get; } = [];
 
     private string? _pending;
 
@@ -35,5 +106,12 @@ public class AssistantState
         var question = _pending;
         _pending = null;
         return question;
+    }
+
+    /// <summary>Starts over. A conversation that outlives the page needs a way to end.</summary>
+    public void Clear()
+    {
+        Messages.Clear();
+        _pending = null;
     }
 }
