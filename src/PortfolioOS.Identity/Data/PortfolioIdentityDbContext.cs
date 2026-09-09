@@ -10,6 +10,8 @@ namespace PortfolioOS.Identity.Data;
 public class PortfolioIdentityDbContext(DbContextOptions<PortfolioIdentityDbContext> options)
     : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>(options)
 {
+    public DbSet<PasswordResetCode> PasswordResetCodes => Set<PasswordResetCode>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -25,6 +27,22 @@ public class PortfolioIdentityDbContext(DbContextOptions<PortfolioIdentityDbCont
         {
             e.ToTable("roles");
             e.Property(r => r.Description).HasMaxLength(256);
+        });
+
+        builder.Entity<PasswordResetCode>(e =>
+        {
+            e.ToTable("password_reset_codes");
+            e.HasKey(c => c.Id);
+            e.Property(c => c.CodeHash).HasMaxLength(256).IsRequired();
+
+            // Pencarian selalu "kode aktif milik user ini, yang terbaru".
+            e.HasIndex(c => new { c.UserId, c.CreatedAt });
+
+            // User dihapus → kode resetnya ikut hilang.
+            e.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<Microsoft.AspNetCore.Identity.IdentityUserRole<Guid>>().ToTable("user_roles");

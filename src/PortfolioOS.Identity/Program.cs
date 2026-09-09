@@ -178,6 +178,24 @@ builder.Services.AddAuthorization(o =>
         .RequireRole(Roles.Admin));
 });
 
+// ---------------------------------------------------------------------------
+// Lupa password — kode sekali pakai lewat email
+// ---------------------------------------------------------------------------
+builder.Services.Configure<PasswordResetOptions>(
+    builder.Configuration.GetSection(PasswordResetOptions.SectionName));
+builder.Services.Configure<EmailOptions>(
+    builder.Configuration.GetSection(EmailOptions.SectionName));
+
+// Tanpa SMTP yang dikonfigurasi, isi email jatuh ke log. Itu membuat alur reset tetap bisa
+// dijalankan saat development, sekaligus mencegah service gagal diam-diam karena mengira
+// email terkirim padahal tidak ada tujuan pengiriman.
+if (string.IsNullOrWhiteSpace(builder.Configuration[$"{EmailOptions.SectionName}:SmtpHost"]))
+    builder.Services.AddSingleton<IEmailSender, LoggingEmailSender>();
+else
+    builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
+
+builder.Services.AddScoped<PasswordResetService>();
+
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
 builder.Services.AddHealthChecks().AddDbContextCheck<PortfolioIdentityDbContext>();

@@ -1,0 +1,35 @@
+@page
+@model PortfolioOS.Identity.Pages.Account.VerifyCodeModel
+@{
+    ViewData["Title"] = "Konfirmasi kode";
+}
+
+<h1>Masukkan kode</h1>
+<p class="sub">
+    Kode @Model.CodeLength digit dikirim ke <strong>@Model.Input.Email</strong>.
+    Berlaku @Model.LifetimeMinutes menit.
+</p>
+
+@if (!string.IsNullOrEmpty(Model.InfoMessage))
+{
+    <div class="alert ok">@Model.InfoMessage</div>
+}
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert">@Model.ErrorMessage</div>
+}
+
+<form method="post">
+    <input type="hidden" asp-for="Input.Email"/>
+
+    <label asp-for="Input.Code">Kode konfirmasi</label>
+    <input asp-for="Input.Code" type="text" class="code-input" inputmode="numeric" autocomplete="one-time-code"
+           maxlength="@Model.CodeLength" autofocus/>
+    <span asp-validation-for="Input.Code" class="field-error"></span>
+
+    <button type="submit">Verifikasi</button>
+    <button type="submit" class="secondary spaced" asp-page-handler="Resend">Kirim ulang kode</button>
+</form>
+
+<p class="links"><a asp-page="Login">Kembali ke halaman masuk</a></p>

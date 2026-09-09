@@ -7,6 +7,11 @@
 <h1>Masuk</h1>
 <p class="sub">Gunakan akun PortfolioOS Anda untuk melanjutkan.</p>
 
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert ok">@Model.StatusMessage</div>
+}
+
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
     <div class="alert">@Model.ErrorMessage</div>
@@ -28,3 +33,5 @@
 
     <button type="submit">Masuk</button>
 </form>
+
+<p class="links"><a asp-page="ForgotPassword">Lupa password?</a></p>

@@ -327,6 +327,34 @@ tidak perlu memanggil `/connect/userinfo` per request.
 Endpoint `/api/users` dan `/api/roles` di service identity butuh scope `portfolioos.admin`
 **sekaligus** role `admin`. Scope saja tidak cukup, jadi user biasa yang memintanya tetap ditolak 403.
 
+### Lupa password
+
+Tautan **Lupa password?** di `/Account/Login` membuka alur tiga langkah di service identity:
+
+1. `/Account/ForgotPassword` — user mengisi email akunnya.
+2. `/Account/VerifyCode` — kode 6 digit dikirim ke email itu, berlaku **10 menit** dan sekali
+   pakai. User mengisinya lalu menekan **Verifikasi**. Tersedia tombol kirim ulang dengan jeda
+   60 detik.
+3. `/Account/ResetPassword` — form password baru + ulangi password baru, dengan email akun
+   ditampilkan di atasnya. Setelah tersimpan user dikembalikan ke halaman masuk.
+
+Yang perlu diketahui saat membaca kodenya:
+
+- Langkah 1 selalu lanjut ke langkah 2, terdaftar atau tidak. Halaman yang menjawab berbeda
+  untuk email asing akan jadi alat memetakan daftar user.
+- Kode disimpan sebagai hash PBKDF2 di tabel `password_reset_codes`, bukan teks polos, dan
+  dibuang setelah 5 percobaan salah.
+- Perubahan password tetap lewat `UserManager.ResetPasswordAsync` dengan token bawaan Identity;
+  kode 6 digit hanya membuktikan pemintanya bisa membaca inbox tersebut. Token itu terikat
+  security stamp, jadi sekali password berganti semua token reset lain ikut mati.
+- Lockout akibat percobaan login gagal sebelumnya dibersihkan setelah reset berhasil — kalau
+  tidak, user berhasil ganti password tapi tetap tertahan 15 menit saat mencoba masuk.
+
+Kode dikirim lewat SMTP sesuai bagian `Email` di konfigurasi. **Kalau `Email:SmtpHost` kosong,
+email tidak dikirim melainkan ditulis ke log** — alur tetap bisa dicoba lewat `dotnet run` tanpa
+menyiapkan SMTP, kodenya tinggal dibaca di konsol. Di `docker compose` sudah tersedia
+[Mailpit](http://localhost:8025) yang menangkap semua email keluar.
+
 ### Bagaimana API memvalidasi token
 
 `PortfolioOS.API` menjalankan dua skema sekaligus dan memilihnya dari klaim `iss` di token:
@@ -354,6 +382,21 @@ File ini di-`.gitignore` (seperti appsettings API), jadi buat sendiri:
     "MetadataAddress": "",
     "LicenseKey": "",
     "SigningCertificate": { "Path": "", "Password": "" }
+  },
+  "Email": {
+    "FromAddress": "no-reply@portfolioos.local",
+    "FromName": "PortfolioOS",
+    "SmtpHost": "",
+    "SmtpPort": 25,
+    "UseSsl": false,
+    "UserName": "",
+    "Password": ""
+  },
+  "PasswordReset": {
+    "CodeLength": 6,
+    "CodeLifetimeMinutes": 10,
+    "MaxVerifyAttempts": 5,
+    "ResendCooldownSeconds": 60
   },
   "Clients": {
     "WebBaseUrl": "https://localhost:7001",
@@ -446,6 +489,7 @@ docker compose up -d --build
 - Web: `http://localhost:8081`
 - API / Swagger: `http://localhost:5243/swagger`
 - Identity: `http://localhost:5244` (discovery di `/.well-known/openid-configuration`)
+- Mailpit: `http://localhost:8025` — kotak surat development, menangkap email kode reset password
 - PostgreSQL: `localhost:5432` (`postgres` / `postgres`), data persisten di named volume `pgdata`
 
 Migrations dan seed data otomatis dijalankan oleh container `api` dan `identity` saat pertama kali

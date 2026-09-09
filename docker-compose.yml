@@ -20,6 +20,18 @@ services:
       timeout: 5s
       retries: 10
 
+  # Kotak surat palsu untuk development. Email reset password ditangkap di sini dan bisa
+  # dibaca lewat UI di http://localhost:8025 — tidak ada yang benar-benar terkirim keluar.
+  mailpit:
+    image: axllent/mailpit:v1.20
+    ports:
+      - "8025:8025"   # UI web
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   identity:
     build:
       context: .
@@ -27,6 +39,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__IdentityConnection: "Host=postgres;Port=5432;Database=portfolioos_identity;Username=postgres;Password=postgres"
@@ -41,6 +55,9 @@ services:
       Clients__LegacyClientSecret: "legacy-secret-change-me"
       Clients__JobsClientSecret: "jobs-secret-change-me"
       Cookie__SameSite: "Lax"
+      Email__SmtpHost: "mailpit"
+      Email__SmtpPort: "1025"
+      Email__FromAddress: "no-reply@portfolioos.local"
     ports:
       - "5244:8080"
     healthcheck:

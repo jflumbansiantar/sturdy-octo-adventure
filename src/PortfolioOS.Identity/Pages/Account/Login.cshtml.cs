@@ -17,10 +17,15 @@ public class LoginModel(
     IEventService events,
     ILogger<LoginModel> logger) : PageModel
 {
+    /// <summary>Pesan sukses yang dititipkan alur lupa password sebelum kembali ke sini.</summary>
+    public const string StatusKey = "Login.Status";
+
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
     public string? ErrorMessage { get; private set; }
+
+    public string? StatusMessage { get; private set; }
 
     public class InputModel
     {
@@ -41,6 +46,7 @@ public class LoginModel(
     public async Task<IActionResult> OnGetAsync(string? returnUrl)
     {
         Input.ReturnUrl = returnUrl;
+        StatusMessage = TempData[StatusKey] as string;
 
         // Kalau IdentityServer mengirim balik dengan pesan error (mis. client tidak valid),
         // tampilkan di halaman login alih-alih membiarkan user menebak.
