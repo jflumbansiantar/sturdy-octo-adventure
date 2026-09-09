@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PortfolioOS.API.Authorization;
 using PortfolioOS.API.Middleware;
+using PortfolioOS.API.Services;
 using PortfolioOS.Application;
 using PortfolioOS.Infrastructure;
 using PortfolioOS.Infrastructure.Persistence;
@@ -89,6 +90,10 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
 
 // HttpClient for Yahoo Finance (registered in Infrastructure)
 builder.Services.AddHttpClient();
+
+// Keeps the chat search index in step with the data. Degrades quietly when the embedding
+// model has not been downloaded - see ChatIndexBackgroundService.
+builder.Services.AddHostedService<ChatIndexBackgroundService>();
 
 var app = builder.Build();
 

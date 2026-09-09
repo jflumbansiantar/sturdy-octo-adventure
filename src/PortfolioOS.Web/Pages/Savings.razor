@@ -1,0 +1,362 @@
+@page "/savings"
+@inherits AppStateComponentBase
+@inject PortfolioApiClient Api
+@inject ISnackbar Snackbar
+
+<PageTitle>Tabungan - PortfolioOS</PageTitle>
+
+<div class="d-flex justify-space-between align-center flex-wrap mb-1" style="gap:12px;">
+    <MudText Typo="Typo.h5">Saran Tabungan</MudText>
+    <MudSelect T="int" Value="_months" ValueChanged="ReloadAsync" Label="Periode analisis"
+               Dense="true" Variant="Variant.Outlined" Style="max-width:200px;">
+        <MudSelectItem Value="@(3)">3 bulan terakhir</MudSelectItem>
+        <MudSelectItem Value="@(6)">6 bulan terakhir</MudSelectItem>
+        <MudSelectItem Value="@(12)">12 bulan terakhir</MudSelectItem>
+        <MudSelectItem Value="@(24)">24 bulan terakhir</MudSelectItem>
+    </MudSelect>
+</div>
+
+<MudText Typo="Typo.body2" Class="mb-4 mud-text-secondary">
+    Berapa yang realistis Anda tabung tiap bulan, dihitung dari tiga metode sekaligus: alokasi
+    proporsional 50/30/20 menentukan targetnya, proporsi konsumsi Keynesian (MPS) mengoreksinya
+    dengan kebiasaan Anda sendiri, dan Save More Tomorrow mengatur seberapa cepat naiknya.
+</MudText>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Class="mb-4" />
+}
+
+@if (_result is { HasEnoughData: false })
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4">
+        @foreach (var note in _result.Notes)
+        {
+            <div>@note</div>
+        }
+    </MudAlert>
+}
+
+@if (_result is { HasEnoughData: true } s)
+{
+    <MudGrid Spacing="3" Class="mb-1">
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Sisihkan bulan ini</MudText>
+                <MudText Typo="Typo.h4" Color="Color.Primary">@AppState.FormatValue(s.RecommendedSaving)</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    @s.RecommendedSavingRate.ToString("F1")% dari pemasukan @AppState.FormatValue(s.MonthlyIncome)
+                </MudText>
+
+                <MudDivider Class="my-3" />
+
+                <div class="d-flex justify-space-between align-center">
+                    <MudText Typo="Typo.body2">Target gabungan</MudText>
+                    <MudText Typo="Typo.body2">
+                        <b>@AppState.FormatValue(s.TargetSaving)</b> (@s.TargetSavingRate.ToString("F1")%)
+                    </MudText>
+                </div>
+                <MudProgressLinear Color="Color.Primary" Value="@ProgressToTarget(s)" Class="my-2" />
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @if (s.Smart.ReachesTargetWithinHorizon)
+                    {
+                        @($"Target tercapai dalam {s.Smart.MonthsToTarget} bulan dengan kenaikan bertahap.")
+                    }
+                    else
+                    {
+                        @($"Butuh sekitar {s.Smart.MonthsToTarget} bulan kenaikan bertahap untuk sampai ke target.")
+                    }
+                </MudText>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="7">
+            <MudGrid Spacing="3">
+                @foreach (var stat in Stats(s))
+                {
+                    <MudItem xs="6" sm="6">
+                        <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@stat.Label</MudText>
+                            <MudText Typo="Typo.h6">@AppState.FormatValue(stat.Value)</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@stat.Hint</MudText>
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudItem>
+    </MudGrid>
+
+    @foreach (var note in s.Notes)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mt-3">@note</MudAlert>
+    }
+
+    <MudGrid Spacing="3" Class="mt-1">
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+                <MudText Typo="Typo.h6">Tangga setoran (Save More Tomorrow)</MudText>
+                <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">
+                    Naik sedikit demi sedikit, bukan langsung ke target — supaya uang belanja
+                    bulanan Anda tidak terasa berkurang.
+                </MudText>
+                <MudTable Items="@s.Ramp" Dense="true" Hover="true" Elevation="0">
+                    <HeaderContent>
+                        <MudTh>Bulan</MudTh>
+                        <MudTh Style="text-align:right">Setoran</MudTh>
+                        <MudTh Style="text-align:right">% pemasukan</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.Month.ToString("MMM yyyy")</MudTd>
+                        <MudTd Style="text-align:right">@AppState.FormatValue(context.Amount)</MudTd>
+                        <MudTd Style="text-align:right">@context.Rate.ToString("F1")%</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+                <MudText Typo="Typo.h6" Class="mb-3">Rumus gabungan</MudText>
+                <MudText Typo="Typo.body2">
+                    Target = (1 − w) × Alokasi 50/30/20 + w × MPS
+                </MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    w = bobot metode Keynesian, naik seiring cocoknya garis konsumsi dan panjangnya
+                    riwayat. Di sini w = @s.Mps.Weight.ToString("F1")%.
+                </MudText>
+                <MudDivider Class="my-3" />
+                <div class="d-flex justify-space-between mb-1">
+                    <MudText Typo="Typo.body2">50/30/20 (setelah dibatasi kapasitas)</MudText>
+                    <MudText Typo="Typo.body2">@AppState.FormatValue(s.Allocation.FeasibleSaving)</MudText>
+                </div>
+                <div class="d-flex justify-space-between mb-1">
+                    <MudText Typo="Typo.body2">MPS Keynesian</MudText>
+                    <MudText Typo="Typo.body2">@AppState.FormatValue(s.Mps.Saving)</MudText>
+                </div>
+                <div class="d-flex justify-space-between mb-1">
+                    <MudText Typo="Typo.body2"><b>Target gabungan</b></MudText>
+                    <MudText Typo="Typo.body2"><b>@AppState.FormatValue(s.TargetSaving)</b></MudText>
+                </div>
+                <div class="d-flex justify-space-between">
+                    <MudText Typo="Typo.body2">Langkah SMarT bulan ini</MudText>
+                    <MudText Typo="Typo.body2">+@AppState.FormatValue(s.Smart.MonthlyStep)</MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="3" Class="mt-1">
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+                <MudText Typo="Typo.h6">1. Alokasi 50/30/20</MudText>
+                <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">
+                    Berapa yang <i>seharusnya</i> ditabung.
+                </MudText>
+
+                <div class="d-flex justify-space-between">
+                    <MudText Typo="Typo.body2">Kebutuhan + cicilan</MudText>
+                    <MudText Typo="Typo.body2" Color="@Ceiling(s.Allocation.EssentialsOverCeiling)">
+                        @s.Allocation.EssentialsShare.ToString("F1")% / @s.Allocation.EssentialsCeiling.ToString("F0")%
+                    </MudText>
+                </div>
+                <MudProgressLinear Value="@Bar(s.Allocation.EssentialsShare)" Class="mb-3"
+                                   Color="@Ceiling(s.Allocation.EssentialsOverCeiling)" />
+
+                <div class="d-flex justify-space-between">
+                    <MudText Typo="Typo.body2">Gaya hidup</MudText>
+                    <MudText Typo="Typo.body2" Color="@Ceiling(s.Allocation.WantsOverCeiling)">
+                        @s.Allocation.WantsShare.ToString("F1")% / @s.Allocation.WantsCeiling.ToString("F0")%
+                    </MudText>
+                </div>
+                <MudProgressLinear Value="@Bar(s.Allocation.WantsShare)" Class="mb-3"
+                                   Color="@Ceiling(s.Allocation.WantsOverCeiling)" />
+
+                <div class="d-flex justify-space-between">
+                    <MudText Typo="Typo.body2">Tabungan</MudText>
+                    <MudText Typo="Typo.body2">
+                        @s.Allocation.SavingShare.ToString("F1")% / @s.Allocation.TargetShare.ToString("F0")%
+                    </MudText>
+                </div>
+                <MudProgressLinear Value="@Bar(s.Allocation.SavingShare)" Color="Color.Primary" Class="mb-3" />
+
+                <MudDivider Class="my-2" />
+                <div class="d-flex justify-space-between">
+                    <MudText Typo="Typo.body2">Ideal 20%</MudText>
+                    <MudText Typo="Typo.body2">@AppState.FormatValue(s.Allocation.IdealSaving)</MudText>
+                </div>
+                <div class="d-flex justify-space-between">
+                    <MudText Typo="Typo.body2">Setelah dibatasi kapasitas</MudText>
+                    <MudText Typo="Typo.body2">@AppState.FormatValue(s.Allocation.FeasibleSaving)</MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+                <MudText Typo="Typo.h6">2. MPS Keynesian</MudText>
+                <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">
+                    Berapa yang <i>nyatanya</i> Anda tabung, dari fungsi konsumsi C = a + b·Y.
+                </MudText>
+
+                <div class="d-flex justify-space-between mb-1">
+                    <MudText Typo="Typo.body2">MPC (b)</MudText>
+                    <MudText Typo="Typo.body2">@s.Mps.Mpc.ToString("F2")</MudText>
+                </div>
+                <div class="d-flex justify-space-between mb-1">
+                    <MudText Typo="Typo.body2">MPS (1 − b)</MudText>
+                    <MudText Typo="Typo.body2"><b>@s.Mps.Mps.ToString("F2")</b></MudText>
+                </div>
+                <div class="d-flex justify-space-between mb-1">
+                    <MudText Typo="Typo.body2">Konsumsi otonom (a)</MudText>
+                    <MudText Typo="Typo.body2">@AppState.FormatValue(s.Mps.AutonomousConsumption)</MudText>
+                </div>
+                <div class="d-flex justify-space-between mb-1">
+                    <MudText Typo="Typo.body2">Kecocokan garis (R²)</MudText>
+                    <MudText Typo="Typo.body2">@s.Mps.RSquared.ToString("F0")%</MudText>
+                </div>
+                <div class="d-flex justify-space-between mb-1">
+                    <MudText Typo="Typo.body2">Bobot dalam blend</MudText>
+                    <MudText Typo="Typo.body2">@s.Mps.Weight.ToString("F1")%</MudText>
+                </div>
+
+                <MudDivider Class="my-2" />
+                <div class="d-flex justify-space-between">
+                    <MudText Typo="Typo.body2">S = (1 − b)Y − a</MudText>
+                    <MudText Typo="Typo.body2"><b>@AppState.FormatValue(s.Mps.Saving)</b></MudText>
+                </div>
+                @if (!s.Mps.IsRegression)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        Dari rata-rata, bukan regresi — riwayat belum cukup panjang atau pemasukan
+                        Anda tidak berubah.
+                    </MudText>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+                <MudText Typo="Typo.h6">3. Save More Tomorrow</MudText>
+                <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">
+                    Seberapa <i>cepat</i> naiknya, tanpa memotong uang belanja hari ini.
+                </MudText>
+
+                <div class="d-flex justify-space-between mb-1">
+                    <MudText Typo="Typo.body2">Kenaikan pemasukan</MudText>
+                    <MudText Typo="Typo.body2">@AppState.FormatValue(s.Smart.Raise)</MudText>
+                </div>
+                <div class="d-flex justify-space-between mb-1">
+                    <MudText Typo="Typo.body2">Porsi kenaikan yang ditabung</MudText>
+                    <MudText Typo="Typo.body2">@s.Smart.RaiseCaptureRate.ToString("F0")% = @AppState.FormatValue(s.Smart.RaiseCapture)</MudText>
+                </div>
+                <div class="d-flex justify-space-between mb-1">
+                    <MudText Typo="Typo.body2">Eskalasi otomatis</MudText>
+                    <MudText Typo="Typo.body2">@s.Smart.EscalationRate.ToString("F1")% pemasukan/bulan</MudText>
+                </div>
+                <div class="d-flex justify-space-between mb-1">
+                    <MudText Typo="Typo.body2">Langkah bulan ini</MudText>
+                    <MudText Typo="Typo.body2"><b>+@AppState.FormatValue(s.Smart.MonthlyStep)</b></MudText>
+                </div>
+
+                <MudDivider Class="my-2" />
+                <div class="d-flex justify-space-between">
+                    <MudText Typo="Typo.body2">Sampai target</MudText>
+                    <MudText Typo="Typo.body2">@s.Smart.MonthsToTarget bulan</MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudPaper Class="pa-4 mt-4" Elevation="2">
+        <MudText Typo="Typo.h6" Class="mb-1">Riwayat arus kas</MudText>
+        <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">
+            @s.MonthsAnalyzed bulan terbaca, dan @s.BaselineMonths bulan terakhir yang dipakai
+            sebagai patokan "sekarang". Pengeluaran yang tidak dikenali dihitung sebagai
+            kebutuhan, jadi sarannya cenderung konservatif.
+        </MudText>
+        <MudTable Items="@HistoryDesc(s)" Dense="true" Hover="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Bulan</MudTh>
+                <MudTh Style="text-align:right">Pemasukan</MudTh>
+                <MudTh Style="text-align:right">Kebutuhan</MudTh>
+                <MudTh Style="text-align:right">Cicilan</MudTh>
+                <MudTh Style="text-align:right">Gaya hidup</MudTh>
+                <MudTh Style="text-align:right">Sisa</MudTh>
+                <MudTh Style="text-align:right">%</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Month.ToString("MMM yyyy")</MudTd>
+                <MudTd Style="text-align:right">@AppState.FormatValue(context.Income)</MudTd>
+                <MudTd Style="text-align:right">@AppState.FormatValue(context.Needs)</MudTd>
+                <MudTd Style="text-align:right">@AppState.FormatValue(context.DebtService)</MudTd>
+                <MudTd Style="text-align:right">@AppState.FormatValue(context.Wants)</MudTd>
+                <MudTd Style="text-align:right">
+                    <MudText Typo="Typo.body2" Color="@(context.Saving >= 0 ? Color.Success : Color.Error)">
+                        @AppState.FormatValue(context.Saving)
+                    </MudText>
+                </MudTd>
+                <MudTd Style="text-align:right">@context.SavingRate.ToString("F1")%</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText>Belum ada transaksi pada periode ini.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private SavingsSuggestionModel? _result;
+    private bool _loading = true;
+    private int _months = 6;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task ReloadAsync(int months)
+    {
+        _months = months;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+
+        // Without this the period selector looks frozen: Blazor re-renders only once the whole
+        // handler returns, so the progress bar would appear after the call it covers has ended.
+        StateHasChanged();
+
+        try
+        {
+            _result = await Api.GetSavingsSuggestionAsync(_months);
+        }
+        catch
+        {
+            // Keeps the figures already on screen instead of leaving a blank page under Blazor's
+            // unhandled-error bar - and, unlike letting it throw, lets _loading come back down.
+            Snackbar.Add("Gagal memuat saran tabungan.", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static IEnumerable<MonthlyCashflowModel> HistoryDesc(SavingsSuggestionModel s) =>
+        s.History.OrderByDescending(h => h.Month);
+
+    private static IEnumerable<(string Label, decimal Value, string Hint)> Stats(SavingsSuggestionModel s) =>
+    [
+        ("Pemasukan / bulan", s.MonthlyIncome, $"rata-rata {s.BaselineMonths} bulan terakhir"),
+        ("Kebutuhan + cicilan", s.MonthlyNeeds + s.MonthlyDebtService, $"{s.Allocation.EssentialsShare:F1}% dari pemasukan"),
+        ("Gaya hidup", s.MonthlyWants, $"{s.Allocation.WantsShare:F1}% dari pemasukan"),
+        ("Kapasitas maksimal", s.MaxCapacity, "batas atas, sudah memangkas separuh gaya hidup"),
+    ];
+
+    /// <summary>Where this month's setoran sits between nothing and the target.</summary>
+    private static double ProgressToTarget(SavingsSuggestionModel s) =>
+        s.TargetSaving <= 0 ? 0 : (double)Math.Min(100m, s.RecommendedSaving / s.TargetSaving * 100m);
+
+    private static double Bar(decimal share) => (double)Math.Clamp(share, 0m, 100m);
+
+    private static Color Ceiling(bool over) => over ? Color.Warning : Color.Default;
+}

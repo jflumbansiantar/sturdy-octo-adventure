@@ -101,6 +101,13 @@ public class PortfolioApiClient(HttpClient http, AuthService auth)
         resp.EnsureSuccessStatusCode();
     }
 
+    // Savings
+    public async Task<SavingsSuggestionModel?> GetSavingsSuggestionAsync(int months = 6)
+    {
+        await PrepareAsync();
+        return await http.GetFromJsonAsync<SavingsSuggestionModel>($"api/savings/suggestion?months={months}");
+    }
+
     // Ledger - Accounts
     public async Task<List<LedgerAccountModel>> GetAccountsAsync()
     {
@@ -202,6 +209,15 @@ public class PortfolioApiClient(HttpClient http, AuthService auth)
         await PrepareAsync();
         var resp = await http.PatchAsJsonAsync("api/settings", new { key, value });
         resp.EnsureSuccessStatusCode();
+    }
+
+    // Chat
+    public async Task<ChatAnswerModel?> AskChatAsync(string question)
+    {
+        await PrepareAsync();
+        var resp = await http.PostAsJsonAsync("api/chat", new { question });
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content.ReadFromJsonAsync<ChatAnswerModel>();
     }
 
     private record IdResponse(Guid Id);

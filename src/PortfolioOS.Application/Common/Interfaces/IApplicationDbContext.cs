@@ -13,6 +13,7 @@ public interface IApplicationDbContext
     DbSet<JournalLine> JournalLines { get; }
     DbSet<Debt> Debts { get; }
     DbSet<AppSetting> AppSettings { get; }
+    DbSet<ChatDocument> ChatDocuments { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

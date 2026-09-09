@@ -9,3 +9,6 @@
 tests/
 src/PortfolioOS.Mobile/
 *.md
+
+# Local embedding model - the image fetches its own copy, see src/PortfolioOS.API/Dockerfile
+src/PortfolioOS.API/models/

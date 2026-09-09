@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using Pgvector;
 using PortfolioOS.Infrastructure.Persistence;
 
 #nullable disable
@@ -20,6 +21,7 @@ namespace PortfolioOS.Infrastructure.Persistence.Migrations
                 .HasAnnotation("ProductVersion", "8.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "vector");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("PortfolioOS.Domain.Entities.AppSetting", b =>
@@ -45,6 +47,60 @@ namespace PortfolioOS.Infrastructure.Persistence.Migrations
                     b.HasKey("Key");
 
                     b.ToTable("app_settings", (string)null);
+                });
+
+            modelBuilder.Entity("PortfolioOS.Domain.Entities.ChatDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("content");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("content_hash");
+
+                    b.Property<Vector>("Embedding")
+                        .IsRequired()
+                        .HasColumnType("vector(384)")
+                        .HasColumnName("embedding");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("chat_document_kind")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("SkillId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("skill_id");
+
+                    b.Property<string>("SourceId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("source_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Kind")
+                        .HasDatabaseName("idx_chat_documents_kind");
+
+                    b.HasIndex("Kind", "SourceId")
+                        .HasDatabaseName("idx_chat_documents_source");
+
+                    b.ToTable("chat_documents", (string)null);
                 });
 
             modelBuilder.Entity("PortfolioOS.Domain.Entities.Debt", b =>

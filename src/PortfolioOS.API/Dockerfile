@@ -1,5 +1,16 @@
 # syntax=docker/dockerfile:1
 
+# --- Embedding model stage ---
+# The chat assistant's embedding model (~490MB), fetched at build time rather than committed.
+# It lives in its own stage so the download is cached independently of the source tree:
+# editing code does not re-fetch it.
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS model
+WORKDIR /model
+ARG MODEL_BASE=https://huggingface.co/intfloat/multilingual-e5-small/resolve/main
+RUN curl -fSL --retry 3 -o model.onnx              "$MODEL_BASE/onnx/model.onnx" \
+ && curl -fSL --retry 3 -o sentencepiece.bpe.model "$MODEL_BASE/sentencepiece.bpe.model" \
+ && curl -fSL --retry 3 -o tokenizer.json          "$MODEL_BASE/tokenizer.json"
+
 # --- Build stage ---
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
@@ -26,6 +37,10 @@ RUN dotnet publish -c Release -o /app/publish --no-restore
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
+
+# Embedding:ModelPath defaults to models/e5-small, relative to this WORKDIR.
+# Without this the API still starts and every feature except /api/chat works.
+COPY --from=model /model/ ./models/e5-small/
 
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080

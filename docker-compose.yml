@@ -1,6 +1,9 @@
 services:
   postgres:
-    image: postgres:15-alpine
+    # pgvector's official image, not postgres:15-alpine. Note it is debian-based (glibc) while
+    # the alpine image is musl: an existing pgdata volume should be recreated rather than
+    # reused, since differing collations can corrupt text indexes.
+    image: pgvector/pgvector:pg15
     environment:
       POSTGRES_DB: portfolioos
       POSTGRES_USER: postgres
