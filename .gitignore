@@ -69,3 +69,6 @@ tests/**/[Oo]bj/
 src/PortfolioOS.API/models/
 
 appsettings.json
+
+# Compose lokal (berisi konfigurasi/kredensial spesifik mesin)
+docker-compose.yml
