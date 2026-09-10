@@ -1,0 +1,262 @@
+/* Cute neo-brutalism, layered over MudBlazor.
+ *
+ * The palette itself lives in App.razor, where it feeds every --mud-palette-* variable.
+ * What is here is the part Material has no vocabulary for: flat 3px outlines, hard
+ * offset shadows with no blur, chunky weights, and buttons that physically press.
+ *
+ * index.html loads this after MudBlazor.min.css, so equal-specificity rules win on
+ * order. Where MudBlazor's own selector is more specific, the selector below matches
+ * its shape exactly rather than reaching for !important. */
+
+:root {
+    --nb-ink: #000000;
+    --nb-canvas: #FFF5F7;   /* pale blush  */
+    --nb-surface: #FFFDF9;  /* soft cream  */
+    --nb-pink: #FF8FAB;
+    --nb-yellow: #FFD166;
+    --nb-mint: #B9FBC0;
+    --nb-lilac: #CDB4DB;
+    --nb-sky: #A2D2FF;
+
+    --nb-border: 3px solid var(--nb-ink);
+    --nb-hairline: 2px solid var(--nb-ink);
+
+    /* Material's blurred elevation ramp, replaced wholesale with hard offsets. Every
+     * MudBlazor surface reads its shadow from these variables, so retuning them here
+     * covers MudPaper, MudCard, MudDialog, the drawer and the app bar at once —
+     * including any component added later. */
+    --mud-elevation-0: none;
+    --mud-elevation-1: 3px 3px 0 var(--nb-ink);
+    --mud-elevation-2: 4px 4px 0 var(--nb-ink);
+    --mud-elevation-3: 5px 5px 0 var(--nb-ink);
+    --mud-elevation-4: 6px 6px 0 var(--nb-ink);
+    --mud-elevation-5: 6px 6px 0 var(--nb-ink);
+    --mud-elevation-6: 7px 7px 0 var(--nb-ink);
+    --mud-elevation-7: 7px 7px 0 var(--nb-ink);
+    --mud-elevation-8: 8px 8px 0 var(--nb-ink);
+    --mud-elevation-9: 8px 8px 0 var(--nb-ink);
+    --mud-elevation-10: 8px 8px 0 var(--nb-ink);
+    --mud-elevation-11: 8px 8px 0 var(--nb-ink);
+    --mud-elevation-12: 8px 8px 0 var(--nb-ink);
+    --mud-elevation-13: 8px 8px 0 var(--nb-ink);
+    --mud-elevation-14: 8px 8px 0 var(--nb-ink);
+    --mud-elevation-15: 8px 8px 0 var(--nb-ink);
+    --mud-elevation-16: 8px 8px 0 var(--nb-ink);
+    --mud-elevation-17: 8px 8px 0 var(--nb-ink);
+    --mud-elevation-18: 8px 8px 0 var(--nb-ink);
+    --mud-elevation-19: 8px 8px 0 var(--nb-ink);
+    --mud-elevation-20: 8px 8px 0 var(--nb-ink);
+    --mud-elevation-21: 8px 8px 0 var(--nb-ink);
+    --mud-elevation-22: 8px 8px 0 var(--nb-ink);
+    --mud-elevation-23: 8px 8px 0 var(--nb-ink);
+    --mud-elevation-24: 10px 10px 0 var(--nb-ink);
+    --mud-elevation-25: 10px 10px 0 var(--nb-ink);
+}
+
+/* ---------- canvas & type ---------- */
+
+body,
+.mud-layout {
+    background-color: var(--nb-canvas);
+    background-image: radial-gradient(rgba(0, 0, 0, .13) 1.6px, transparent 1.6px);
+    background-size: 22px 22px;
+}
+
+body,
+.mud-typography,
+.mud-input-control,
+.mud-button-root,
+.mud-table,
+.mud-nav-link,
+input, textarea, select, button {
+    font-family: "Nunito", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+}
+
+body { font-weight: 600; }
+
+.mud-typography-h1, .mud-typography-h2, .mud-typography-h3,
+.mud-typography-h4, .mud-typography-h5, .mud-typography-h6 {
+    font-weight: 900;
+    letter-spacing: -.02em;
+}
+
+.mud-typography-subtitle1, .mud-typography-subtitle2 { font-weight: 800; }
+
+/* ---------- surfaces ---------- */
+
+.mud-paper {
+    border: var(--nb-border);
+    border-radius: 18px;
+}
+
+/* MudBlazor draws the outlined variant with a 1px line of its own. */
+.mud-paper-outlined { border: var(--nb-border); }
+
+.mud-appbar {
+    border-bottom: var(--nb-border);
+}
+
+.mud-appbar .mud-toolbar { font-weight: 800; }
+
+.mud-drawer {
+    border-right: var(--nb-border);
+}
+
+.mud-dialog {
+    border: var(--nb-border);
+    border-radius: 20px;
+}
+
+/* ---------- buttons ---------- */
+
+/* Icon buttons are excluded on purpose: MudBlazor reuses .mud-button-root for the
+ * select arrows, date-picker arrows and dialog close button, and outlining every one
+ * of those turns the page into confetti. */
+.mud-button-root:not(.mud-icon-button) {
+    border: var(--nb-border);
+    border-radius: 14px;
+    font-weight: 800;
+    text-transform: none;
+    letter-spacing: 0;
+    box-shadow: 4px 4px 0 var(--nb-ink);
+    transition: transform .08s ease, box-shadow .08s ease;
+}
+
+.mud-button-root:not(.mud-icon-button):hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 5px 5px 0 var(--nb-ink);
+}
+
+.mud-button-root:not(.mud-icon-button):active {
+    transform: translate(3px, 3px);
+    box-shadow: 1px 1px 0 var(--nb-ink);
+}
+
+/* The app bar sits on buttercup; its buttons need the outline but not a second shadow
+ * stacked on the bar's own. */
+.mud-appbar .mud-button-root:not(.mud-icon-button) {
+    box-shadow: 2px 2px 0 var(--nb-ink);
+}
+
+.mud-appbar .mud-icon-button {
+    border: var(--nb-hairline);
+    border-radius: 11px;
+}
+
+/* ---------- inputs ---------- */
+
+/* Variant.Outlined is what this app uses almost everywhere (52 of 68 fields). */
+.mud-input.mud-input-outlined .mud-input-outlined-border {
+    border-width: 3px;
+    border-color: var(--nb-ink);
+    border-radius: 12px;
+}
+
+.mud-input.mud-input-outlined:hover .mud-input-outlined-border,
+.mud-input.mud-input-outlined.mud-focused .mud-input-outlined-border {
+    border-width: 3px;
+    border-color: var(--nb-ink);
+}
+
+.mud-input-control { font-weight: 600; }
+
+.mud-input.mud-input-filled {
+    border: var(--nb-hairline);
+    border-radius: 12px;
+}
+
+.mud-input-label { font-weight: 700; }
+
+/* ---------- tables ---------- */
+
+.mud-table {
+    border: var(--nb-border);
+    border-radius: 18px;
+    overflow: hidden;
+}
+
+/* MudBlazor styles the header cell through `.mud-table-root .mud-table-head
+ * .mud-table-cell`, pulling weight and transform from the subtitle2 typography
+ * variables. Anything shorter than that selector loses, so this one matches it. */
+.mud-table-root .mud-table-head .mud-table-cell {
+    background-color: var(--nb-yellow);
+    border-bottom: var(--nb-border);
+    color: var(--nb-ink);
+    font-weight: 800;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.mud-table-cell { border-bottom: 2px solid rgba(0, 0, 0, .14); }
+
+.mud-table-row:last-child .mud-table-cell { border-bottom: 0; }
+
+/* ---------- chips, alerts, progress ---------- */
+
+.mud-chip {
+    border: var(--nb-hairline);
+    font-weight: 800;
+    box-shadow: 2px 2px 0 var(--nb-ink);
+}
+
+.mud-alert {
+    border: var(--nb-border);
+    border-radius: 14px;
+    font-weight: 700;
+    box-shadow: 3px 3px 0 var(--nb-ink);
+}
+
+/* The bar needs real height before an outline reads as a container: MudBlazor's
+ * default medium is 8px, and a 2px rule top and bottom turns that into a solid black
+ * line. These selectors match MudBlazor's own three so they win on load order. */
+.mud-progress-linear {
+    border: var(--nb-hairline);
+    border-radius: 99px;
+    overflow: hidden;
+    background-color: var(--nb-surface);
+}
+
+.mud-progress-linear.horizontal.mud-progress-linear-small { height: 12px; }
+.mud-progress-linear.horizontal.mud-progress-linear-medium { height: 16px; }
+.mud-progress-linear.horizontal.mud-progress-linear-large { height: 20px; }
+
+/* ---------- nav ---------- */
+
+.mud-nav-link {
+    font-weight: 700;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    margin: 4px 8px;
+}
+
+.mud-navmenu.mud-navmenu-default .mud-nav-link:hover:not(.mud-nav-link-disabled) {
+    background-color: var(--nb-lilac);
+    border-color: var(--nb-ink);
+}
+
+/* Matches MudBlazor's own selector shape so it wins on load order rather than on
+ * !important — see the note at the top of this file. */
+.mud-navmenu.mud-navmenu-default .mud-nav-link.active:not(.mud-nav-link-disabled) {
+    background-color: var(--nb-pink);
+    border-color: var(--nb-ink);
+    color: var(--nb-ink);
+    box-shadow: 3px 3px 0 var(--nb-ink);
+}
+
+.mud-navmenu.mud-navmenu-default .mud-nav-link.active:not(.mud-nav-link-disabled):hover {
+    background-color: var(--nb-pink);
+}
+
+/* ---------- motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+    .mud-button-root:not(.mud-icon-button) {
+        transition: none;
+    }
+
+    .mud-button-root:not(.mud-icon-button):hover,
+    .mud-button-root:not(.mud-icon-button):active {
+        transform: none;
+    }
+}

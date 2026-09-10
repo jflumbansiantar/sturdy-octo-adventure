@@ -1,4 +1,8 @@
-<MudThemeProvider IsDarkMode="true" />
+@* Cute neo-brutalism. This palette feeds every --mud-palette-* variable; the flat
+   outlines, hard shadows and chunky weights that Material cannot express live in
+   wwwroot/css/neobrutalism.css. Light mode is the point of the theme, not a default —
+   the whole look rests on black-on-cream contrast. *@
+<MudThemeProvider Theme="_theme" IsDarkMode="false" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -15,3 +19,58 @@
         </LayoutView>
     </NotFound>
 </Router>
+
+@code {
+    private readonly MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#FF8FAB",   // bubblegum
+            Secondary = "#A2D2FF", // sky
+            Tertiary = "#CDB4DB",  // lilac
+            Info = "#A2D2FF",
+            Success = "#B9FBC0",   // mint
+            Warning = "#FFD166",   // buttercup
+
+            // The brief's palette has no error colour. This is the one addition: a
+            // deepened bubblegum that still reads as "something is wrong" next to the
+            // pink primary, rather than a Material red that would sit outside the set.
+            Error = "#FF5C8A",
+
+            // Every accent is a pastel, so contrast text is black across the board —
+            // white would fail against all of them.
+            PrimaryContrastText = "#000000",
+            SecondaryContrastText = "#000000",
+            TertiaryContrastText = "#000000",
+            InfoContrastText = "#000000",
+            SuccessContrastText = "#000000",
+            WarningContrastText = "#000000",
+            ErrorContrastText = "#000000",
+
+            Background = "#FFF5F7", // pale blush
+            Surface = "#FFFDF9",    // soft cream
+            BackgroundGray = "#FFF5F7",
+
+            AppbarBackground = "#FFD166",
+            AppbarText = "#000000",
+            DrawerBackground = "#FFFDF9",
+            DrawerText = "#000000",
+            DrawerIcon = "#000000",
+
+            TextPrimary = "#000000",
+            TextSecondary = "#5B5560",
+            ActionDefault = "#000000",
+
+            // The anchor: every rule, divider and input outline is pitch black.
+            Divider = "#000000",
+            DividerLight = "#000000",
+            LinesDefault = "#000000",
+            LinesInputs = "#000000",
+            TableLines = "#000000",
+        },
+        LayoutProperties = new LayoutProperties
+        {
+            DefaultBorderRadius = "14px",
+        },
+    };
+}
