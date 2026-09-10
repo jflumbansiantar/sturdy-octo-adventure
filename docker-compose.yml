@@ -1,8 +1,5 @@
 services:
   postgres:
-    # pgvector's official image, not postgres:15-alpine. Note it is debian-based (glibc) while
-    # the alpine image is musl: an existing pgdata volume should be recreated rather than
-    # reused, since differing collations can corrupt text indexes.
     image: pgvector/pgvector:pg15
     environment:
       POSTGRES_DB: portfolioos
@@ -12,7 +9,6 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      # Membuat database kedua (portfolioos_identity) saat volume pertama kali dibuat.
       - ./database/init-identity-db.sql:/docker-entrypoint-initdb.d/10-init-identity-db.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d portfolioos"]
@@ -20,12 +16,10 @@ services:
       timeout: 5s
       retries: 10
 
-  # Kotak surat palsu untuk development. Email reset password ditangkap di sini dan bisa
-  # dibaca lewat UI di http://localhost:8025 — tidak ada yang benar-benar terkirim keluar.
   mailpit:
     image: axllent/mailpit:v1.20
     ports:
-      - "8025:8025"   # UI web
+      - "8025:8025"
     healthcheck:
       test: ["CMD", "/mailpit", "readyz"]
       interval: 10s
@@ -44,13 +38,11 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__IdentityConnection: "Host=postgres;Port=5432;Database=portfolioos_identity;Username=postgres;Password=postgres"
-      # Issuer harus memakai alamat yang dilihat browser, bukan nama service internal,
-      # supaya redirect OIDC dan validasi token di API cocok.
-      IdentityServer__IssuerUri: "http://localhost:5244"
-      IdentityServer__PublicOrigin: "http://localhost:5244"
-      IdentityServer__MetadataAddress: "http://localhost:8080/.well-known/openid-configuration"
-      Clients__WebBaseUrl: "http://localhost:8081"
-      Clients__ApiBaseUrl: "http://localhost:5243"
+      IdentityServer__IssuerUri: "https://pwm.srv1898824.hstgr.cloud"
+      IdentityServer__PublicOrigin: "https://pwm.srv1898824.hstgr.cloud/"
+      IdentityServer__MetadataAddress: "https://pwm.srv1898824.hstgr.cloud/.well-known/openid-configuration"
+      Clients__WebBaseUrl: "https://pwm.srv1898824.hstgr.cloud/"
+      Clients__ApiBaseUrl: "/api"
       Clients__EnableLegacyPasswordClient: "true"
       Clients__LegacyClientSecret: "legacy-secret-change-me"
       Clients__JobsClientSecret: "jobs-secret-change-me"
@@ -58,13 +50,16 @@ services:
       Email__SmtpHost: "mailpit"
       Email__SmtpPort: "1025"
       Email__FromAddress: "no-reply@portfolioos.local"
+      IssuerUri: "https://pwm.srv1898824.hstgr.cloud"
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+      - traefik.http.routers.pwm-identity.rule=Host(`pwm.srv1898824.hstgr.cloud`) && (PathPrefix(`/.well-known`) || PathPrefix(`/connect`) || PathPrefix(`/account`))
+      - traefik.http.routers.pwm-identity.entrypoints=websecure
+      - traefik.http.routers.pwm-identity.tls.certresolver=letsencrypt
+      - traefik.http.services.pwm-identity.loadbalancer.server.port=8080
     ports:
       - "5244:8080"
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
 
   api:
     build:
@@ -74,33 +69,48 @@ services:
       postgres:
         condition: service_healthy
       identity:
-        condition: service_healthy
+        condition: service_started
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=portfolioos;Username=postgres;Password=postgres"
-      Jwt__Secret: "change-me-to-a-long-random-secret-key-min-32-chars"
+      Jwt__Secret: "PQDAXACiAgtieBRm5V0ztUeeEcobi6K9Z0e5CU84TYU="
       Jwt__Issuer: PortfolioOS
       Jwt__Audience: PortfolioOS
       Jwt__ExpiryHours: "24"
       Auth__Username: admin
       Auth__Password: password
       Auth__AllowLegacyTokens: "true"
-      IdentityServer__Authority: "http://localhost:5244"
+      IdentityServer__Authority: "https://pwm.srv1898824.hstgr.cloud/"
       IdentityServer__MetadataAddress: "http://identity:8080/.well-known/openid-configuration"
       IdentityServer__Audience: portfolioos-api
       IdentityServer__RequireHttpsMetadata: "false"
-      Cors__AllowedOrigins__0: "http://localhost:8081"
+      Cors__AllowedOrigins__0: "https://pwm.srv1898824.hstgr.cloud/"
     ports:
       - "5243:8080"
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+      - traefik.http.routers.pwm-api.rule=Host(`pwm.srv1898824.hstgr.cloud`) && PathPrefix(`/api`)
+      - traefik.http.routers.pwm-api.entrypoints=websecure
+      - traefik.http.routers.pwm-api.tls.certresolver=letsencrypt
+      - traefik.http.services.pwm-api.loadbalancer.server.port=8080
 
   web:
     build:
       context: .
       dockerfile: src/PortfolioOS.Web/Dockerfile
     depends_on:
-      - api
+      api:
+        condition: service_started
     ports:
       - "8081:80"
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+      - traefik.http.routers.pwm.rule=Host(`pwm.srv1898824.hstgr.cloud`)
+      - traefik.http.routers.pwm.entrypoints=websecure
+      - traefik.http.routers.pwm.tls.certresolver=letsencrypt
+      - traefik.http.services.pwm.loadbalancer.server.port=80
 
 volumes:
   pgdata:
