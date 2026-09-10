@@ -1,0 +1,11 @@
+@page
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
+@{
+    ViewData["Title"] = "Akses ditolak";
+}
+
+<h1>Akses ditolak</h1>
+<p class="sub">Akun Anda tidak memiliki izin untuk membuka sumber daya ini.</p>
+
+<a href="/Account/Logout"><button type="button" class="secondary">Masuk sebagai akun lain</button></a>

@@ -29,6 +29,9 @@
         <ShellContent Route="debts"
                       Title="Debt"
                       ContentTemplate="{DataTemplate pages:DebtsPage}" />
+        <ShellContent Route="account"
+                      Title="Akun"
+                      ContentTemplate="{DataTemplate pages:AccountPage}" />
     </TabBar>
 
 </Shell>

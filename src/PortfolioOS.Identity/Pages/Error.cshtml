@@ -1,0 +1,22 @@
+@page
+@model PortfolioOS.Identity.Pages.ErrorModel
+@{
+    ViewData["Title"] = "Terjadi kesalahan";
+}
+
+<h1>Terjadi kesalahan</h1>
+<p class="sub">Permintaan tidak dapat diproses.</p>
+
+@if (!string.IsNullOrEmpty(Model.Error))
+{
+    <div class="alert">
+        <strong>@Model.Error</strong>
+        @if (!string.IsNullOrEmpty(Model.ErrorDescription))
+        {
+            <br/>
+            @Model.ErrorDescription
+        }
+    </div>
+}
+
+<p class="meta">Request ID: <code>@Model.RequestId</code></p>

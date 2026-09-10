@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:PortfolioOS.Mobile.ViewModels"
+             x:Class="PortfolioOS.Mobile.Pages.AccountPage"
+             x:DataType="vm:AccountViewModel"
+             Title="Akun"
+             BackgroundColor="#1A1A2E">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="16">
+
+            <Frame BackgroundColor="#16213E" BorderColor="Transparent" CornerRadius="12" Padding="20">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Masuk sebagai" TextColor="#888" FontSize="12" />
+                    <Label Text="{Binding DisplayName}" TextColor="White" FontSize="20" FontAttributes="Bold" />
+                    <Label Text="{Binding Role}" TextColor="#4CAF50" FontSize="13"
+                           IsVisible="{Binding Role, Converter={StaticResource StringNotEmptyConverter}}" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <Button Text="Keluar"
+                    Command="{Binding LogoutCommand}"
+                    BackgroundColor="#F44336"
+                    TextColor="White"
+                    FontAttributes="Bold"
+                    HeightRequest="50"
+                    CornerRadius="10" />
+
+            <Label Text="Keluar akan menghapus sesi di perangkat ini. Anda perlu masuk lagi untuk membuka data portofolio."
+                   TextColor="#888" FontSize="12" HorizontalTextAlignment="Center" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
