@@ -4,47 +4,236 @@
 
 <PageTitle>Dashboard – PortfolioOS</PageTitle>
 
+@*
+    The dashboard answers "where do I stand" across the whole book, not just the portfolio: the
+    headline row mixes holdings, cash and debt, and the projection figures come from the same
+    endpoints the Proyeksi page uses, called with the same defaults so a number here and the number
+    one click away are never in disagreement.
+*@
+
 @if (_loading)
 {
     <MudProgressLinear Indeterminate="true" Class="mb-4" />
 }
 
+@* ── The one thing on this page that asks for a decision today ── *@
+@if (_cashflow is { HasEnoughData: true, CashRunsOutMonth: { } runsOut })
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4"
+              Icon="@Icons.Material.Filled.Warning">
+        <MudText Typo="Typo.subtitle2">Kas diperkirakan habis @runsOut.ToString("MMMM yyyy")</MudText>
+        <MudText Typo="Typo.body2">
+            Pada jalur tengah proyeksi, saldo kas menyentuh nol dalam @MonthsFromNow(runsOut) bulan.
+            <MudLink Href="forecast" Color="Color.Inherit" Underline="Underline.Always">
+                <b>Lihat proyeksi</b>
+            </MudLink>
+        </MudText>
+    </MudAlert>
+}
+else if (_cashflow is { HasEnoughData: true, FirstDeficitMonth: { } deficit })
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">
+        <MudText Typo="Typo.body2">
+            Pengeluaran diperkirakan melampaui pemasukan mulai @deficit.ToString("MMMM yyyy") —
+            kas masih cukup, tapi arahnya menurun.
+            <MudLink Href="forecast" Underline="Underline.Always">Lihat proyeksi</MudLink>
+        </MudText>
+    </MudAlert>
+}
+
+@* ─────────────────────────── Ringkasan ─────────────────────────── *@
+<MudGrid Spacing="3" Class="mb-4">
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Kekayaan bersih</MudText>
+            @if (NetWorth is { } worth)
+            {
+                <MudText Typo="Typo.h5" Color="@GainColor(worth)">@AppState.FormatValue(worth)</MudText>
+                @* Compact figures with the operators spelled out: three full-length amounts wrap
+                   to three lines on a phone, and a negative "utang" reads as a double negation. *@
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    portofolio @AppState.FormatCompact(_summary!.TotalValue)
+                    + kas @AppState.FormatCompact(_cashflow!.OpeningCash)
+                    − utang @AppState.FormatCompact(_payoff!.TotalBalance)
+                </MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.h5" Class="mud-text-secondary">—</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @FinanceStatus("menghitung kas & utang")
+                </MudText>
+            }
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Kas saat ini</MudText>
+            @if (_cashflow is { } cash)
+            {
+                <MudText Typo="Typo.h5">@AppState.FormatValue(cash.OpeningCash)</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @(cash.RunwayMonths is { } runway
+                        ? $"cukup {runway} bulan kalau pemasukan berhenti"
+                        : "sisa napas butuh saldo kas untuk dihitung")
+                </MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.h5" Class="mud-text-secondary">—</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @FinanceStatus("memuat saldo kas")
+                </MudText>
+            }
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Netto bulan depan</MudText>
+            @if (NextMonth is { } next)
+            {
+                <MudText Typo="Typo.h5" Color="@GainColor(next.NetP50)">
+                    @AppState.FormatValue(next.NetP50)
+                </MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    rentang @AppState.FormatValue(next.NetP10) – @AppState.FormatValue(next.NetP90)
+                </MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.h5" Class="mud-text-secondary">—</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @(_cashflow is { HasEnoughData: false }
+                        ? "belum cukup riwayat untuk diproyeksikan"
+                        : FinanceStatus("memuat proyeksi"))
+                </MudText>
+            }
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Bebas utang</MudText>
+            @if (_payoff is { HasDebts: false })
+            {
+                <MudText Typo="Typo.h5" Color="Color.Success">Tidak ada utang</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    tidak ada saldo aktif tercatat
+                </MudText>
+            }
+            else if (_payoff is { DebtFreeMonth: { } free })
+            {
+                <MudText Typo="Typo.h5" Color="Color.Success">@free.ToString("MMM yyyy")</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @_payoff.MonthsToDebtFree bulan lagi · sisa @AppState.FormatValue(_payoff.TotalBalance)
+                </MudText>
+            }
+            else if (_payoff is { AllPaidOff: false })
+            {
+                @* An instalment that never clears the interest has no payoff date at all. Left as a
+                   dash it would read as "belum dihitung" rather than the warning it actually is. *@
+                <MudText Typo="Typo.h6" Color="Color.Error">Tidak pernah lunas</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    cicilan tidak menutup bunga · sisa @AppState.FormatValue(_payoff.TotalBalance)
+                </MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.h5" Class="mud-text-secondary">—</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @FinanceStatus("memuat rencana pelunasan")
+                </MudText>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@* ─────────────────── Proyeksi kas & target ─────────────────── *@
+<MudGrid Spacing="3" Class="mb-4">
+    <MudItem xs="12" md="8">
+        <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+            <div class="d-flex justify-space-between align-center flex-wrap mb-2" style="gap:12px;">
+                <MudText Typo="Typo.h6">Proyeksi saldo kas</MudText>
+                <MudButton Href="forecast" Variant="Variant.Text" Size="Size.Small"
+                           EndIcon="@Icons.Material.Filled.ArrowForward">Lihat detail</MudButton>
+            </div>
+            @if (_cashflow is { HasEnoughData: true } chart && chart.Forecast.Count > 0)
+            {
+                <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">
+                    Jalur tengah (P50) dengan rentang P10–P90 selama @chart.HorizonMonths bulan.
+                    Pitanya melebar mengikuti akar kuadrat waktu — jarak dari tengah ke tepi itu
+                    bagian jujurnya.
+                </MudText>
+                <ForecastFanChart Points="@CashPoints(chart)" Format="@AppState.FormatCompact"
+                                  AriaLabel="Proyeksi saldo kas" />
+            }
+            else if (_cashflow is { HasEnoughData: false })
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                    Belum cukup riwayat bulanan untuk diproyeksikan. Catat pemasukan dan pengeluaran
+                    di <MudLink Href="ledger">Buku Besar</MudLink> dulu.
+                </MudAlert>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    @FinanceStatus("memuat proyeksi")
+                </MudText>
+            }
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="4">
+        <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+            <MudText Typo="Typo.h6" Class="mb-3">Dana darurat</MudText>
+            @if (_goal is { } goal)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@goal.GoalName</MudText>
+                <MudText Typo="Typo.h5">@AppState.FormatValue(goal.TargetAmount)</MudText>
+                <MudProgressLinear Color="Color.Primary" Value="@((double)goal.ProgressShare)" Class="my-3" />
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    terkumpul @AppState.FormatValue(goal.CurrentAmount)
+                    (@goal.ProgressShare.ToString("F1")%) · kurang @AppState.FormatValue(goal.Shortfall)
+                </MudText>
+                @* A goal already funded comes back with this month as its target and zero months to
+                   go, which as a sentence reads like a forecast for something that has happened. *@
+                @if (goal.Shortfall <= 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Success" Class="mt-2">
+                        Sudah tercapai — dana daruratnya penuh
+                    </MudText>
+                }
+                else if (goal.TargetMonth is { } reached)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Success" Class="mt-2">
+                        Tercapai @reached.ToString("MMM yyyy") · @goal.MonthsToTarget bulan lagi
+                    </MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Warning" Class="mt-2">
+                        Belum ada tanggal — belum ada dana yang disisihkan rutin
+                    </MudText>
+                }
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    @FinanceStatus("memuat target")
+                </MudText>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@* ─────────────────────────── Portofolio ─────────────────────────── *@
 @if (_summary is not null)
 {
     <MudGrid Spacing="3" Class="mb-4">
-        <MudItem xs="12" sm="6" md="3">
-            <MudPaper Class="pa-4" Elevation="2">
-                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Value</MudText>
-                <MudText Typo="Typo.h5">@AppState.FormatValue(_summary.TotalValue)</MudText>
-            </MudPaper>
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudPaper Class="pa-4" Elevation="2">
-                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Cost</MudText>
-                <MudText Typo="Typo.h5">@AppState.FormatValue(_summary.TotalCostBasis)</MudText>
-            </MudPaper>
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudPaper Class="pa-4" Elevation="2">
-                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Gain/Loss</MudText>
-                <MudText Typo="Typo.h5" Color="@GainColor(_summary.TotalGainLoss)">
-                    @AppState.FormatValue(_summary.TotalGainLoss) (@_summary.TotalGainLossPct.ToString("F2")%)
-                </MudText>
-            </MudPaper>
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudPaper Class="pa-4" Elevation="2">
-                <MudText Typo="Typo.caption" Color="Color.Secondary">Today's Gain/Loss</MudText>
-                <MudText Typo="Typo.h5" Color="@GainColor(_summary.TodayGainLoss)">
-                    @AppState.FormatValue(_summary.TodayGainLoss)
-                </MudText>
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
-
-    <MudGrid Spacing="3">
         <MudItem xs="12" md="7">
-            <MudPaper Class="pa-4" Elevation="2">
+            <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
                 <MudText Typo="Typo.h6" Class="mb-3">Top Movers</MudText>
                 <MudTable Items="@TopMovers" Dense="true" Hover="true" Elevation="0">
                     <HeaderContent>
@@ -74,6 +263,31 @@
         </MudItem>
 
         <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4 mb-3" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3">Portofolio</MudText>
+                <div class="d-flex justify-space-between mb-2">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Nilai pasar</MudText>
+                    <MudText Typo="Typo.body2">@AppState.FormatValue(_summary.TotalValue)</MudText>
+                </div>
+                <div class="d-flex justify-space-between mb-2">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Modal</MudText>
+                    <MudText Typo="Typo.body2">@AppState.FormatValue(_summary.TotalCostBasis)</MudText>
+                </div>
+                <div class="d-flex justify-space-between mb-2">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Untung/rugi</MudText>
+                    <MudText Typo="Typo.body2" Color="@GainColor(_summary.TotalGainLoss)">
+                        @AppState.FormatValue(_summary.TotalGainLoss)
+                        (@_summary.TotalGainLossPct.ToString("F2")%)
+                    </MudText>
+                </div>
+                <div class="d-flex justify-space-between">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Hari ini</MudText>
+                    <MudText Typo="Typo.body2" Color="@GainColor(_summary.TodayGainLoss)">
+                        @AppState.FormatValue(_summary.TodayGainLoss)
+                    </MudText>
+                </div>
+            </MudPaper>
+
             <MudPaper Class="pa-4" Elevation="2">
                 <MudText Typo="Typo.h6" Class="mb-3">By Market</MudText>
                 @foreach (var grp in ByMarket)
@@ -89,7 +303,7 @@
     </MudGrid>
 }
 
-<MudPaper Class="pa-4 mt-4" Elevation="2">
+<MudPaper Class="pa-4" Elevation="2">
     <MudText Typo="Typo.h6" Class="mb-3">Recent Transactions</MudText>
     <MudTable Items="@_transactions" Dense="true" Hover="true" Elevation="0">
         <HeaderContent>
@@ -108,9 +322,23 @@
 </MudPaper>
 
 @code {
+    /// <summary>
+    /// History window and horizon behind the projection cards. Deliberately the values the Proyeksi
+    /// page opens with, so the warning month and the payoff date shown here are the ones the user
+    /// finds after clicking through rather than a second, differently-scoped answer.
+    /// </summary>
+    private const int HistoryMonths = 6;
+    private const int HorizonMonths = 12;
+    private const int EmergencyFundMonths = 6;
+
     private PortfolioSummaryModel? _summary;
     private List<TransactionModel> _transactions = [];
+    private CashflowForecastModel? _cashflow;
+    private DebtPayoffPlanModel? _payoff;
+    private GoalProjectionModel? _goal;
+
     private bool _loading = true;
+    private bool _financeFailed;
 
     protected override async Task OnInitializedAsync()
     {
@@ -120,6 +348,85 @@
         _summary = t1.Result;
         _transactions = t2.Result.Take(5).ToList();
         _loading = false;
+    }
+
+    /// <summary>
+    /// Loads the three projection endpoints after the first paint.
+    /// </summary>
+    /// <remarks>
+    /// Hanging these off the first render rather than <c>OnInitializedAsync</c> keeps the first
+    /// paint at two requests instead of five: the portfolio numbers arrive as quickly as they did
+    /// before and the projection cards fill in behind them. Failures are caught rather than thrown
+    /// so a projection the API cannot compute leaves the rest of the page standing instead of
+    /// blanking it under Blazor's unhandled-error bar.
+    /// </remarks>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        try
+        {
+            var cashflow = Api.GetCashflowForecastAsync(HistoryMonths, HorizonMonths);
+            var payoff = Api.GetDebtPayoffAsync();
+            var goal = Api.GetGoalProjectionAsync(null, EmergencyFundMonths, HistoryMonths);
+            await Task.WhenAll(cashflow, payoff, goal);
+
+            _cashflow = cashflow.Result;
+            _payoff = payoff.Result;
+            _goal = goal.Result;
+        }
+        catch
+        {
+            _financeFailed = true;
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>Portfolio plus spendable cash, minus debt.</summary>
+    /// <remarks>
+    /// Nothing is counted twice: the cash figure comes from the forecast's own cash-account
+    /// classifier, which keeps investment and portfolio accounts out of the ledger side, so the
+    /// holdings are added exactly once. Null until all three parts have landed — a figure that
+    /// climbs by a portfolio, then by a cash balance, then drops by the debt would be three wrong
+    /// numbers on the way to one right one.
+    /// </remarks>
+    private decimal? NetWorth =>
+        _summary is null || _cashflow is null || _payoff is null
+            ? null
+            : _summary.TotalValue + _cashflow.OpeningCash - _payoff.TotalBalance;
+
+    private CashflowForecastMonthModel? NextMonth =>
+        _cashflow is { HasEnoughData: true } f ? f.Forecast.FirstOrDefault() : null;
+
+    private string FinanceStatus(string loading) => _financeFailed ? "gagal dimuat" : $"{loading}…";
+
+    private static int MonthsFromNow(DateOnly month)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        return Math.Max(0, (month.Year - today.Year) * 12 + month.Month - today.Month);
+    }
+
+    /// <summary>The cumulative cash path as one series: today's balance, then the projected band.</summary>
+    /// <remarks>
+    /// The opening balance belongs to the month before the first projected one, so the chart's own
+    /// month axis puts it exactly one step to the left and the fan opens out of it rather than
+    /// starting beside it.
+    /// </remarks>
+    private static List<ForecastFanChart.FanPoint> CashPoints(CashflowForecastModel f)
+    {
+        var points = new List<ForecastFanChart.FanPoint>();
+        if (f.Forecast.Count == 0) return points;
+
+        var start = f.Forecast[0].Month.AddMonths(-1);
+        points.Add(new(start, "Sekarang", f.OpeningCash, f.OpeningCash, f.OpeningCash, f.OpeningCash));
+        points.AddRange(f.Forecast.Select(r => new ForecastFanChart.FanPoint(
+            r.Month, r.Month.ToString("MMM yy"), null,
+            r.CumulativeP10, r.CumulativeP50, r.CumulativeP90)));
+
+        return points;
     }
 
     private Color GainColor(decimal v) => v >= 0 ? Color.Success : Color.Error;
