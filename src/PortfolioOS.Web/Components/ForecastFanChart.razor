@@ -1,0 +1,237 @@
+@using System.Globalization
+@using System.Net
+@using System.Text
+
+@*
+    A fan chart: recorded months as a solid line, projected months as a P10-P90 band around P50.
+
+    Inline SVG rather than a charting package because the project has none, and because the shape
+    that matters here is an area with a line through it - the one thing a line chart cannot say.
+    The band is the message: drawing this as a single P50 line would claim a precision the forecast
+    does not have.
+
+    The markup is built in C# and emitted as a MarkupString rather than written as Razor elements,
+    because Razor reserves <text> as a control tag of its own and an SVG <text x="..."> is a compile
+    error inside a component. Everything interpolated is HTML-encoded on the way in.
+*@
+
+@if (Points.Count == 0)
+{
+    <MudText Typo="Typo.body2" Class="mud-text-secondary">Belum ada data untuk digambar.</MudText>
+}
+else
+{
+    @((MarkupString)BuildSvg())
+}
+
+@code {
+    /// <summary>
+    /// One column of the chart. A month carries <see cref="Actual"/> when it was recorded and the
+    /// percentile trio when it was projected; the hand-over month carries both, which is what makes
+    /// the band open out of the last known point instead of starting beside it.
+    /// </summary>
+    public record FanPoint(DateOnly Month, string Label, decimal? Actual, decimal? P10, decimal? P50, decimal? P90);
+
+    [Parameter, EditorRequired] public IReadOnlyList<FanPoint> Points { get; set; } = [];
+
+    /// <summary>Formats a value for the axis and tooltips — pass the privacy-aware formatter.</summary>
+    [Parameter, EditorRequired] public Func<decimal, string> Format { get; set; } = v => v.ToString("N0");
+
+    [Parameter] public string AriaLabel { get; set; } = "Proyeksi arus kas";
+
+    private const int Width = 900;
+    private const int Height = 280;
+    private const int PadLeft = 78;
+    private const int PadRight = 14;
+    private const int PadTop = 14;
+    private const int PadBottom = 26;
+
+    private static int PlotWidth => Width - PadLeft - PadRight;
+    private static int PlotHeight => Height - PadTop - PadBottom;
+
+    private decimal _min;
+    private decimal _max;
+
+    private int LabelStep => Math.Max(1, (int)Math.Ceiling(Points.Count / 9d));
+
+    protected override void OnParametersSet()
+    {
+        if (Points.Count == 0) return;
+
+        var values = new List<decimal>();
+        foreach (var p in Points)
+        {
+            if (p.Actual is { } a) values.Add(a);
+            if (p.P10 is { } lo) values.Add(lo);
+            if (p.P50 is { } mid) values.Add(mid);
+            if (p.P90 is { } hi) values.Add(hi);
+        }
+
+        if (values.Count == 0) return;
+
+        _min = values.Min();
+        _max = values.Max();
+
+        // A flat series would divide by zero in Y(); giving it an arbitrary span parks the line in
+        // the middle of the plot, which is where a constant belongs.
+        if (_max - _min == 0m)
+        {
+            _min -= 1m;
+            _max += 1m;
+        }
+
+        // Scale to the data, not to zero. Forcing a zero baseline onto an all-positive series -
+        // which a household in surplus produces every month - spends half the plot on empty space
+        // and flattens the band into a stripe. Zero still gets its own line whenever the series
+        // actually crosses it, which is the only time it carries information.
+        var padding = (_max - _min) * 0.08m;
+        _min -= padding;
+        _max += padding;
+
+        // Month spacing: a series can have calendar gaps (a month with no recorded spending is
+        // dropped), and plotting by array index would draw April next to October as if they were
+        // consecutive. The x-axis is elapsed months so a gap reads as a gap.
+        _span = MonthsBetween(Points[0].Month, Points[^1].Month);
+    }
+
+    private int _span;
+
+    private static int MonthsBetween(DateOnly from, DateOnly to) =>
+        (to.Year - from.Year) * 12 + to.Month - from.Month;
+
+    private string BuildSvg()
+    {
+        var svg = new StringBuilder();
+
+        svg.Append(CultureInfo.InvariantCulture,
+            $"<svg viewBox=\"0 0 {Width} {Height}\" width=\"100%\" height=\"{Height}\" ")
+           .Append("preserveAspectRatio=\"xMidYMid meet\" role=\"img\" aria-label=\"")
+           .Append(Escape(AriaLabel))
+           .Append("\">");
+
+        foreach (var (y, label, isZero) in Ticks())
+        {
+            svg.Append(CultureInfo.InvariantCulture,
+                $"<line x1=\"{N(PadLeft)}\" y1=\"{N(y)}\" x2=\"{N(Width - PadRight)}\" y2=\"{N(y)}\" ")
+               .Append("stroke=\"var(--mud-palette-lines-default)\" stroke-width=\"1\" ")
+               .Append(isZero ? "opacity=\"0.9\"" : "stroke-dasharray=\"3 4\" opacity=\"0.45\"")
+               .Append("/>");
+
+            svg.Append(CultureInfo.InvariantCulture,
+                $"<text x=\"{N(PadLeft - 8)}\" y=\"{N(y + 4)}\" text-anchor=\"end\" font-size=\"11\" ")
+               .Append("fill=\"var(--mud-palette-text-secondary)\">")
+               .Append(Escape(label))
+               .Append("</text>");
+        }
+
+        // The band goes down first so both lines sit on top of it.
+        if (BuildBand() is { } band)
+        {
+            svg.Append($"<path d=\"{band}\" fill=\"var(--mud-palette-primary)\" opacity=\"0.16\" stroke=\"none\"/>");
+        }
+
+        if (BuildLine(p => p.Actual) is { } recorded)
+        {
+            svg.Append($"<polyline points=\"{recorded}\" fill=\"none\" ")
+               .Append("stroke=\"var(--mud-palette-text-primary)\" stroke-width=\"2\" ")
+               .Append("stroke-linejoin=\"round\" opacity=\"0.75\"/>");
+        }
+
+        if (BuildLine(p => p.P50) is { } projected)
+        {
+            svg.Append($"<polyline points=\"{projected}\" fill=\"none\" ")
+               .Append("stroke=\"var(--mud-palette-primary)\" stroke-width=\"2.5\" ")
+               .Append("stroke-linejoin=\"round\" stroke-dasharray=\"6 4\"/>");
+        }
+
+        // Month labels, thinned so they never collide at a 24-month horizon.
+        for (var i = 0; i < Points.Count; i++)
+        {
+            if (i % LabelStep != 0 && i != Points.Count - 1) continue;
+
+            svg.Append(CultureInfo.InvariantCulture,
+                $"<text x=\"{N(X(i))}\" y=\"{N(Height - 8)}\" text-anchor=\"middle\" font-size=\"11\" ")
+               .Append("fill=\"var(--mud-palette-text-secondary)\">")
+               .Append(Escape(Points[i].Label))
+               .Append("</text>");
+        }
+
+        // Invisible hit targets carrying a native tooltip, so a row can be read off the chart.
+        for (var i = 0; i < Points.Count; i++)
+        {
+            var value = Points[i].P50 ?? Points[i].Actual;
+            if (value is null) continue;
+
+            svg.Append(CultureInfo.InvariantCulture,
+                $"<circle cx=\"{N(X(i))}\" cy=\"{N(Y(value.Value))}\" r=\"9\" fill=\"transparent\">")
+               .Append("<title>")
+               .Append(Escape(Tooltip(Points[i])))
+               .Append("</title></circle>");
+        }
+
+        return svg.Append("</svg>").ToString();
+    }
+
+    private double X(int index) =>
+        _span <= 0
+            ? PadLeft + PlotWidth / 2d
+            : PadLeft + PlotWidth * MonthsBetween(Points[0].Month, Points[index].Month) / (double)_span;
+
+    private double Y(decimal value) =>
+        PadTop + PlotHeight * (double)((_max - value) / (_max - _min));
+
+    /// <summary>
+    /// Upper edge left to right, lower edge right to left, closed — the only way to fill between
+    /// two series in SVG.
+    /// </summary>
+    private string? BuildBand()
+    {
+        var banded = Enumerable.Range(0, Points.Count)
+            .Where(i => Points[i].P10 is not null && Points[i].P90 is not null)
+            .ToList();
+
+        if (banded.Count < 2) return null;
+
+        var upper = banded.Select(i => $"{N(X(i))},{N(Y(Points[i].P90!.Value))}");
+        var lower = banded.AsEnumerable().Reverse().Select(i => $"{N(X(i))},{N(Y(Points[i].P10!.Value))}");
+
+        return "M " + string.Join(" L ", upper.Concat(lower)) + " Z";
+    }
+
+    private string? BuildLine(Func<FanPoint, decimal?> select)
+    {
+        var points = Enumerable.Range(0, Points.Count)
+            .Where(i => select(Points[i]) is not null)
+            .Select(i => $"{N(X(i))},{N(Y(select(Points[i])!.Value))}")
+            .ToList();
+
+        return points.Count < 2 ? null : string.Join(" ", points);
+    }
+
+    private IEnumerable<(double Y, string Label, bool IsZero)> Ticks()
+    {
+        yield return (Y(_max), Format(_max), false);
+        yield return (Y((_max + _min) / 2m), Format((_max + _min) / 2m), false);
+        yield return (Y(_min), Format(_min), false);
+
+        // Zero only earns a line when the series actually crosses it — that crossing is the whole
+        // point of a deficit chart, and drawing it off-scale would be noise.
+        if (_min < 0m && _max > 0m)
+        {
+            yield return (Y(0m), Format(0m), true);
+        }
+    }
+
+    private string Tooltip(FanPoint point) =>
+        point.P10 is { } lo && point.P90 is { } hi && point.P50 is { } mid
+            ? $"{point.Label}: {Format(mid)} (rentang {Format(lo)} – {Format(hi)})"
+            : $"{point.Label}: {Format(point.Actual ?? point.P50 ?? 0m)}";
+
+    /// <summary>
+    /// SVG coordinates in invariant culture. On an id-ID browser the default would emit "123,45",
+    /// and a comma inside a path silently separates coordinates instead of decimals.
+    /// </summary>
+    private static string N(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+
+    private static string Escape(string value) => WebUtility.HtmlEncode(value);
+}

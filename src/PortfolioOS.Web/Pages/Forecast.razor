@@ -1,0 +1,660 @@
+@page "/forecast"
+@inherits AppStateComponentBase
+@inject PortfolioApiClient Api
+@inject ISnackbar Snackbar
+
+<PageTitle>Proyeksi - PortfolioOS</PageTitle>
+
+<div class="d-flex justify-space-between align-center flex-wrap mb-1" style="gap:12px;">
+    <MudText Typo="Typo.h5">Proyeksi Keuangan</MudText>
+    <div class="d-flex flex-wrap" style="gap:12px;">
+        <MudSelect T="int" Value="_months" ValueChanged="OnMonthsChanged" Label="Periode analisis"
+                   Dense="true" Variant="Variant.Outlined" Style="min-width:170px;">
+            <MudSelectItem Value="@(3)">3 bulan terakhir</MudSelectItem>
+            <MudSelectItem Value="@(6)">6 bulan terakhir</MudSelectItem>
+            <MudSelectItem Value="@(12)">12 bulan terakhir</MudSelectItem>
+            <MudSelectItem Value="@(24)">24 bulan terakhir</MudSelectItem>
+        </MudSelect>
+        <MudSelect T="int" Value="_horizon" ValueChanged="OnHorizonChanged" Label="Proyeksi ke depan"
+                   Dense="true" Variant="Variant.Outlined" Style="min-width:150px;">
+            <MudSelectItem Value="@(6)">6 bulan</MudSelectItem>
+            <MudSelectItem Value="@(12)">12 bulan</MudSelectItem>
+            <MudSelectItem Value="@(24)">24 bulan</MudSelectItem>
+        </MudSelect>
+    </div>
+</div>
+
+<MudText Typo="Typo.body2" Class="mb-4 mud-text-secondary">
+    Ke mana arus kas Anda menuju, kapan utang lunas, dan kapan target tercapai. Angka pelunasan
+    utang dihitung pasti dari saldo dan bunga yang tercatat; arus kas dan target adalah proyeksi,
+    jadi ditampilkan sebagai rentang — jarak dari P50 ke P10 itu bagian jujurnya.
+</MudText>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Class="mb-4" />
+}
+
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+
+    @* ─────────────────────────── Arus kas ─────────────────────────── *@
+    <MudTabPanel Text="Arus Kas" Icon="@Icons.Material.Filled.WaterfallChart">
+        @if (_cashflow is { HasEnoughData: false } empty)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                @foreach (var note in empty.Notes)
+                {
+                    <div>@note</div>
+                }
+            </MudAlert>
+        }
+        else if (_cashflow is { HasEnoughData: true } f)
+        {
+            <MudGrid Spacing="3" Class="mb-1">
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Netto bulan depan</MudText>
+                        <MudText Typo="Typo.h5" Color="@NetColor(f.Forecast.FirstOrDefault()?.NetP50 ?? 0m)">
+                            @AppState.FormatValue(f.Forecast.FirstOrDefault()?.NetP50 ?? 0m)
+                        </MudText>
+                        @if (f.Forecast.Count > 0)
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                rentang @AppState.FormatValue(f.Forecast[0].NetP10)
+                                – @AppState.FormatValue(f.Forecast[0].NetP90)
+                            </MudText>
+                        }
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Kas saat ini</MudText>
+                        <MudText Typo="Typo.h5">@AppState.FormatValue(f.OpeningCash)</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            @(f.OpeningCash > 0 ? "akun kas & bank di buku besar" : "tidak ada akun kas yang dikenali")
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Sisa napas</MudText>
+                        <MudText Typo="Typo.h5">@(f.RunwayMonths is { } r ? $"{r} bulan" : "—")</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            @(f.RunwayMonths is null ? "butuh saldo kas untuk dihitung" : "kalau pemasukan berhenti hari ini")
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Peringatan terdekat</MudText>
+                        @if (f.CashRunsOutMonth is { } out_)
+                        {
+                            <MudText Typo="Typo.h6" Color="Color.Error">Kas habis @out_.ToString("MMM yyyy")</MudText>
+                        }
+                        else if (f.FirstDeficitMonth is { } deficit)
+                        {
+                            <MudText Typo="Typo.h6" Color="Color.Warning">Defisit @deficit.ToString("MMM yyyy")</MudText>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.h6" Color="Color.Success">Tidak ada</MudText>
+                        }
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            pada jalur tengah (P50) sepanjang @f.HorizonMonths bulan
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+
+            <MudPaper Class="pa-4 mt-4" Elevation="2">
+                <div class="d-flex justify-space-between align-center flex-wrap mb-2" style="gap:12px;">
+                    <MudText Typo="Typo.h6">
+                        @(_cumulative ? "Proyeksi saldo kas" : "Proyeksi netto bulanan")
+                    </MudText>
+                    <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
+                        <MudButton Color="@(_cumulative ? Color.Default : Color.Primary)"
+                                   OnClick="@(() => _cumulative = false)">Netto bulanan</MudButton>
+                        <MudButton Color="@(_cumulative ? Color.Primary : Color.Default)"
+                                   OnClick="@(() => _cumulative = true)">Kumulatif</MudButton>
+                    </MudButtonGroup>
+                </div>
+
+                <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">
+                    Garis penuh adalah bulan yang benar-benar tercatat, garis putus-putus jalur
+                    tengah proyeksi, dan area di sekitarnya rentang P10–P90.
+                    @if (_cumulative)
+                    {
+                        <text>
+                            Pita kumulatif melebar mengikuti akar kuadrat waktu — begitulah galat
+                            bulanan menjumlah, dan itu sebabnya kipasnya membuka ke kanan.
+                        </text>
+                    }
+                    else
+                    {
+                        <text>
+                            Lebar pita bulanan tetap sama: model level tidak menganggap Juni depan
+                            lebih sulit ditebak daripada bulan depan.
+                        </text>
+                    }
+                </MudText>
+
+                <ForecastFanChart Points="@CashflowPoints(f)" Format="@AppState.FormatCompact"
+                                  AriaLabel="@(_cumulative ? "Proyeksi saldo kas" : "Proyeksi netto bulanan")" />
+            </MudPaper>
+
+            @if (f.Notes.Count > 0)
+            {
+                <MudAlert Severity="@(f.CashRunsOutMonth is not null ? Severity.Warning : Severity.Normal)"
+                          Variant="Variant.Outlined" Class="mt-4">
+                    @foreach (var note in f.Notes)
+                    {
+                        <div class="mb-1">@note</div>
+                    }
+                </MudAlert>
+            }
+
+            <MudPaper Class="pa-4 mt-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-1">Rincian per bulan</MudText>
+                <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">
+                    Pemasukan dibawa datar di median @AppState.FormatValue(f.MonthlyIncome); kebutuhan
+                    merayap @f.AnnualInflationRate.ToString("F1")% per tahun; gaya hidup dibiarkan datar.
+                    @if (f.DebtServiceIsScheduled)
+                    {
+                        <text>Cicilan diambil dari jadwal amortisasi, bukan dirata-rata.</text>
+                    }
+                </MudText>
+                <MudTable Items="@f.Forecast" Dense="true" Hover="true" Elevation="0" Breakpoint="Breakpoint.Sm">
+                    <HeaderContent>
+                        <MudTh>Bulan</MudTh>
+                        <MudTh Style="text-align:right">Pemasukan</MudTh>
+                        <MudTh Style="text-align:right">Kebutuhan</MudTh>
+                        <MudTh Style="text-align:right">Gaya hidup</MudTh>
+                        <MudTh Style="text-align:right">Cicilan</MudTh>
+                        <MudTh Style="text-align:right">Netto (P50)</MudTh>
+                        <MudTh Style="text-align:right">Rentang P10–P90</MudTh>
+                        <MudTh Style="text-align:right">Kumulatif</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Bulan">@context.Month.ToString("MMM yyyy")</MudTd>
+                        <MudTd DataLabel="Pemasukan" Style="text-align:right">@AppState.FormatValue(context.Income)</MudTd>
+                        <MudTd DataLabel="Kebutuhan" Style="text-align:right">@AppState.FormatValue(context.Needs)</MudTd>
+                        <MudTd DataLabel="Gaya hidup" Style="text-align:right">@AppState.FormatValue(context.Wants)</MudTd>
+                        <MudTd DataLabel="Cicilan" Style="text-align:right">@AppState.FormatValue(context.DebtService)</MudTd>
+                        <MudTd DataLabel="Netto" Style="text-align:right">
+                            <MudText Typo="Typo.body2" Color="@NetColor(context.NetP50)">
+                                @AppState.FormatValue(context.NetP50)
+                            </MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Rentang" Style="text-align:right">
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @AppState.FormatValue(context.NetP10) – @AppState.FormatValue(context.NetP90)
+                            </MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Kumulatif" Style="text-align:right">
+                            <MudText Typo="Typo.body2" Color="@NetColor(context.CumulativeP50)">
+                                @AppState.FormatValue(context.CumulativeP50)
+                            </MudText>
+                        </MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent><MudText>Belum ada bulan yang bisa diproyeksikan.</MudText></NoRecordsContent>
+                </MudTable>
+            </MudPaper>
+        }
+    </MudTabPanel>
+
+    @* ─────────────────────────── Pelunasan utang ─────────────────────────── *@
+    <MudTabPanel Text="Pelunasan Utang" Icon="@Icons.Material.Filled.CreditCard">
+        <div class="d-flex flex-wrap mb-4" style="gap:12px;">
+            <MudSelect T="string" Value="_strategy" ValueChanged="OnStrategyChanged" Label="Strategi"
+                       Dense="true" Variant="Variant.Outlined" Style="min-width:220px;">
+                <MudSelectItem Value="@("Avalanche")">Avalanche — bunga tertinggi dulu</MudSelectItem>
+                <MudSelectItem Value="@("Snowball")">Snowball — saldo terkecil dulu</MudSelectItem>
+                <MudSelectItem Value="@("MinimumOnly")">Minimum saja — pembanding</MudSelectItem>
+            </MudSelect>
+            <MudNumericField T="decimal" Value="_extraPayment" ValueChanged="OnExtraPaymentChanged"
+                             Label="Setoran tambahan / bulan" Variant="Variant.Outlined" Dense="true"
+                             Min="0" Format="F0" Style="min-width:200px;" />
+        </div>
+
+        @if (_payoff is { HasDebts: false } none)
+        {
+            <MudAlert Severity="Severity.Success" Variant="Variant.Outlined">
+                @foreach (var note in none.Notes)
+                {
+                    <div>@note</div>
+                }
+            </MudAlert>
+        }
+        else if (_payoff is { HasDebts: true } p)
+        {
+            <MudGrid Spacing="3" Class="mb-1">
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Bebas utang</MudText>
+                        @if (p.DebtFreeMonth is { } free)
+                        {
+                            <MudText Typo="Typo.h5" Color="Color.Success">@free.ToString("MMM yyyy")</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@p.MonthsToDebtFree bulan lagi</MudText>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.h6" Color="Color.Error">Tidak pernah</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">cicilan tidak menutup bunga</MudText>
+                        }
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Total bunga</MudText>
+                        <MudText Typo="Typo.h5" Color="Color.Error">@AppState.FormatValue(p.TotalInterest)</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            atas pokok @AppState.FormatValue(p.TotalBalance)
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Anggaran / bulan</MudText>
+                        <MudText Typo="Typo.h5">@AppState.FormatValue(p.MonthlyBudget)</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            minimum @AppState.FormatValue(p.MonthlyMinimum)
+                            @if (p.ExtraPayment > 0)
+                            {
+                                <text>+ tambahan @AppState.FormatValue(p.ExtraPayment)</text>
+                            }
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Hemat vs minimum saja</MudText>
+                        <MudText Typo="Typo.h5" Color="@(p.Comparison?.InterestSavedVsMinimumOnly > 0 ? Color.Success : Color.Default)">
+                            @AppState.FormatValue(p.Comparison?.InterestSavedVsMinimumOnly ?? 0m)
+                        </MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            @(p.Comparison?.MonthsSavedVsMinimumOnly is { } saved and > 0
+                                ? $"dan {saved} bulan lebih cepat"
+                                : "bunga yang tidak jadi dibayar")
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+
+            <MudPaper Class="pa-4 mt-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-1">Antrean pelunasan</MudText>
+                <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">
+                    Urutan ini yang membedakan strategi: utang di posisi 1 menerima seluruh sisa dana
+                    sampai lunas, lalu cicilannya dialihkan ke berikutnya — bukan dibelanjakan.
+                </MudText>
+                <MudTable Items="@p.Debts" Dense="true" Hover="true" Elevation="0" Breakpoint="Breakpoint.Sm">
+                    <HeaderContent>
+                        <MudTh>#</MudTh>
+                        <MudTh>Utang</MudTh>
+                        <MudTh Style="text-align:right">Saldo</MudTh>
+                        <MudTh Style="text-align:right">Bunga/bln</MudTh>
+                        <MudTh Style="text-align:right">Cicilan</MudTh>
+                        <MudTh Style="text-align:right">Lunas</MudTh>
+                        <MudTh Style="text-align:right">Total bunga</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="#">@context.Priority</MudTd>
+                        <MudTd DataLabel="Utang">
+                            @context.Name
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">
+                                @context.Type · @context.MonthlyRate.ToString("F2")% /bln
+                            </MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Saldo" Style="text-align:right">@AppState.FormatValue(context.Balance)</MudTd>
+                        <MudTd DataLabel="Bunga/bln" Style="text-align:right">
+                            @AppState.FormatValue(context.MonthlyInterestAtStart)
+                        </MudTd>
+                        <MudTd DataLabel="Cicilan" Style="text-align:right">
+                            <MudText Typo="Typo.body2" Color="@(context.PaysOff ? Color.Default : Color.Error)">
+                                @AppState.FormatValue(context.MinimumPayment)
+                            </MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Lunas" Style="text-align:right">
+                            @if (context.PayoffMonth is { } month)
+                            {
+                                <MudText Typo="Typo.body2">@month.ToString("MMM yyyy")</MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">
+                                    @context.MonthsToPayoff bulan
+                                </MudText>
+                            }
+                            else
+                            {
+                                <MudTooltip Text="Cicilan tidak melebihi bunga, jadi saldonya naik tiap bulan.">
+                                    <MudText Typo="Typo.body2" Color="Color.Error">tidak pernah</MudText>
+                                </MudTooltip>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Total bunga" Style="text-align:right">
+                            @AppState.FormatValue(context.TotalInterest)
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudPaper>
+
+            @if (p.Comparison is { } c)
+            {
+                <MudPaper Class="pa-4 mt-4" Elevation="2">
+                    <MudText Typo="Typo.h6" Class="mb-3">Perbandingan strategi</MudText>
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12" md="4">
+                            <MudText Typo="Typo.subtitle2">Avalanche</MudText>
+                            <MudText Typo="Typo.h6">@AppState.FormatValue(c.AvalancheInterest)</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                bunga · @Months(c.AvalancheMonths)
+                            </MudText>
+                        </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudText Typo="Typo.subtitle2">Snowball</MudText>
+                            <MudText Typo="Typo.h6">@AppState.FormatValue(c.SnowballInterest)</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                bunga · @Months(c.SnowballMonths)
+                            </MudText>
+                        </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudText Typo="Typo.subtitle2">Minimum saja</MudText>
+                            <MudText Typo="Typo.h6" Color="Color.Error">@AppState.FormatValue(c.MinimumOnlyInterest)</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                bunga · @Months(c.MinimumOnlyMonths)
+                            </MudText>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            }
+
+            @if (p.Notes.Count > 0)
+            {
+                <MudAlert Severity="@(p.AllPaidOff ? Severity.Normal : Severity.Warning)"
+                          Variant="Variant.Outlined" Class="mt-4">
+                    @foreach (var note in p.Notes)
+                    {
+                        <div class="mb-1">@note</div>
+                    }
+                </MudAlert>
+            }
+
+            <MudExpansionPanels Class="mt-4" Elevation="2">
+                <MudExpansionPanel Text="@($"Jadwal bulanan ({p.Schedule.Count} bulan)")">
+                    <MudTable Items="@p.Schedule" Dense="true" Hover="true" Elevation="0" Breakpoint="Breakpoint.Sm">
+                        <HeaderContent>
+                            <MudTh>Bulan</MudTh>
+                            <MudTh Style="text-align:right">Bayar</MudTh>
+                            <MudTh Style="text-align:right">Bunga</MudTh>
+                            <MudTh Style="text-align:right">Pokok</MudTh>
+                            <MudTh Style="text-align:right">Sisa</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Bulan">@context.Month.ToString("MMM yyyy")</MudTd>
+                            <MudTd DataLabel="Bayar" Style="text-align:right">@AppState.FormatValue(context.Payment)</MudTd>
+                            <MudTd DataLabel="Bunga" Style="text-align:right">
+                                <MudText Typo="Typo.body2" Color="Color.Error">@AppState.FormatValue(context.Interest)</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Pokok" Style="text-align:right">
+                                <MudText Typo="Typo.body2" Color="@NetColor(context.Principal)">
+                                    @AppState.FormatValue(context.Principal)
+                                </MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Sisa" Style="text-align:right">@AppState.FormatValue(context.RemainingBalance)</MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager PageSizeOptions="@(new[] { 12, 24, 60 })" />
+                        </PagerContent>
+                    </MudTable>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        }
+    </MudTabPanel>
+
+    @* ─────────────────────────── Target ─────────────────────────── *@
+    <MudTabPanel Text="Target" Icon="@Icons.Material.Filled.Flag">
+        <div class="d-flex flex-wrap mb-4" style="gap:12px;">
+            <MudSelect T="int" Value="_fundMonths" ValueChanged="OnFundMonthsChanged"
+                       Label="Dana darurat" Dense="true" Variant="Variant.Outlined"
+                       Disabled="@(_targetAmount > 0)" Style="min-width:190px;">
+                <MudSelectItem Value="@(3)">3× pengeluaran pokok</MudSelectItem>
+                <MudSelectItem Value="@(6)">6× pengeluaran pokok</MudSelectItem>
+                <MudSelectItem Value="@(12)">12× pengeluaran pokok</MudSelectItem>
+            </MudSelect>
+            <MudNumericField T="decimal" Value="_targetAmount" ValueChanged="OnTargetAmountChanged"
+                             Label="Atau target sendiri (0 = pakai dana darurat)" Variant="Variant.Outlined"
+                             Dense="true" Min="0" Format="F0" Style="min-width:260px;" />
+        </div>
+
+        @if (_goal is { } g)
+        {
+            <MudGrid Spacing="3" Class="mb-1">
+                <MudItem xs="12" md="4">
+                    <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@g.GoalName</MudText>
+                        <MudText Typo="Typo.h5">@AppState.FormatValue(g.TargetAmount)</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            terkumpul @AppState.FormatValue(g.CurrentAmount)
+                            · kurang @AppState.FormatValue(g.Shortfall)
+                        </MudText>
+                        <MudProgressLinear Color="Color.Primary" Value="@((double)g.ProgressShare)" Class="my-2" />
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            @g.ProgressShare.ToString("F1")% dari target
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Perkiraan tercapai</MudText>
+                        @if (g.TargetMonth is { } month)
+                        {
+                            <MudText Typo="Typo.h5" Color="Color.Success">@month.ToString("MMM yyyy")</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@g.MonthsToTarget bulan lagi</MudText>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.h6" Color="Color.Warning">Belum ada tanggal</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                belum ada dana yang disisihkan rutin
+                            </MudText>
+                        }
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudPaper Class="pa-4" Elevation="2" Style="height:100%;">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Setoran per bulan</MudText>
+                        <MudText Typo="Typo.h5">@AppState.FormatValue(g.MonthlyContribution)</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            dari ramp Save More Tomorrow di halaman Tabungan
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+
+            @if (g.Notes.Count > 0)
+            {
+                <MudAlert Severity="@(g.IsReachable ? Severity.Normal : Severity.Info)"
+                          Variant="Variant.Outlined" Class="mt-4">
+                    @foreach (var note in g.Notes)
+                    {
+                        <div class="mb-1">@note</div>
+                    }
+                </MudAlert>
+            }
+
+            @if (g.Trajectory.Count > 0)
+            {
+                <MudPaper Class="pa-4 mt-4" Elevation="2">
+                    <MudText Typo="Typo.h6" Class="mb-3">Jalur akumulasi</MudText>
+                    <MudTable Items="@g.Trajectory" Dense="true" Hover="true" Elevation="0" Breakpoint="Breakpoint.Sm">
+                        <HeaderContent>
+                            <MudTh>Bulan</MudTh>
+                            <MudTh Style="text-align:right">Setoran</MudTh>
+                            <MudTh Style="text-align:right">Terkumpul</MudTh>
+                            <MudTh Style="text-align:right">Progres</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Bulan">@context.Month.ToString("MMM yyyy")</MudTd>
+                            <MudTd DataLabel="Setoran" Style="text-align:right">@AppState.FormatValue(context.Contribution)</MudTd>
+                            <MudTd DataLabel="Terkumpul" Style="text-align:right">@AppState.FormatValue(context.Balance)</MudTd>
+                            <MudTd DataLabel="Progres" Style="text-align:right">@context.ProgressShare.ToString("F1")%</MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager PageSizeOptions="@(new[] { 12, 24, 60 })" />
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+        }
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private CashflowForecastModel? _cashflow;
+    private DebtPayoffPlanModel? _payoff;
+    private GoalProjectionModel? _goal;
+
+    private bool _loading = true;
+    private bool _cumulative;
+
+    private int _months = 6;
+    private int _horizon = 12;
+    private string _strategy = "Avalanche";
+    private decimal _extraPayment;
+    private int _fundMonths = 6;
+    private decimal _targetAmount;
+
+    protected override async Task OnInitializedAsync() => await LoadAllAsync();
+
+    private async Task OnMonthsChanged(int months)
+    {
+        _months = months;
+        await LoadAllAsync();
+    }
+
+    private async Task OnHorizonChanged(int horizon)
+    {
+        _horizon = horizon;
+        await RunAsync(LoadCashflowAsync);
+    }
+
+    private async Task OnStrategyChanged(string strategy)
+    {
+        _strategy = strategy;
+        await RunAsync(LoadPayoffAsync);
+    }
+
+    private async Task OnExtraPaymentChanged(decimal extra)
+    {
+        _extraPayment = Math.Max(0m, extra);
+        await RunAsync(LoadPayoffAsync);
+    }
+
+    private async Task OnFundMonthsChanged(int fundMonths)
+    {
+        _fundMonths = fundMonths;
+        await RunAsync(LoadGoalAsync);
+    }
+
+    private async Task OnTargetAmountChanged(decimal target)
+    {
+        _targetAmount = Math.Max(0m, target);
+        await RunAsync(LoadGoalAsync);
+    }
+
+    private Task LoadAllAsync() => RunAsync(async () =>
+    {
+        await LoadCashflowAsync();
+        await LoadPayoffAsync();
+        await LoadGoalAsync();
+    });
+
+    /// <summary>
+    /// Wraps a load with the progress bar and one error path.
+    /// </summary>
+    /// <remarks>
+    /// The explicit <c>StateHasChanged</c> is not redundant: Blazor re-renders only once the whole
+    /// handler returns, so without it the progress bar would appear after the call it covers has
+    /// already finished. Catching rather than throwing keeps the figures already on screen instead
+    /// of leaving a blank page under Blazor's unhandled-error bar, and lets the bar come back down.
+    /// </remarks>
+    private async Task RunAsync(Func<Task> load)
+    {
+        _loading = true;
+        StateHasChanged();
+
+        try
+        {
+            await load();
+        }
+        catch
+        {
+            Snackbar.Add("Gagal memuat proyeksi.", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task LoadCashflowAsync() =>
+        // The cash-flow tab deliberately assumes minimum payments regardless of the strategy picked
+        // on the debt tab: a forecast describes what happens if nothing changes, and folding an
+        // aspirational payoff plan into it would quietly flatter the projection.
+        _cashflow = await Api.GetCashflowForecastAsync(_months, _horizon);
+
+    private async Task LoadPayoffAsync() =>
+        _payoff = await Api.GetDebtPayoffAsync(_extraPayment, _strategy);
+
+    private async Task LoadGoalAsync() =>
+        _goal = await Api.GetGoalProjectionAsync(
+            _targetAmount > 0 ? _targetAmount : null,
+            _targetAmount > 0 ? null : _fundMonths,
+            _months);
+
+    /// <summary>
+    /// Recorded months then projected ones, as one series. The hand-over month carries both an
+    /// actual and a zero-width band so the fan opens out of the last known point rather than
+    /// starting beside it with a visible gap.
+    /// </summary>
+    private List<ForecastFanChart.FanPoint> CashflowPoints(CashflowForecastModel f)
+    {
+        var points = new List<ForecastFanChart.FanPoint>();
+        if (f.Forecast.Count == 0) return points;
+
+        if (_cumulative)
+        {
+            // The opening balance belongs to the month before the first projected one, so the
+            // chart's own month axis puts it exactly one step to the left.
+            var start = f.Forecast[0].Month.AddMonths(-1);
+
+            points.Add(new(start, "Sekarang", f.OpeningCash, f.OpeningCash, f.OpeningCash, f.OpeningCash));
+            points.AddRange(f.Forecast.Select(r => new ForecastFanChart.FanPoint(
+                r.Month, r.Month.ToString("MMM yy"), null,
+                r.CumulativeP10, r.CumulativeP50, r.CumulativeP90)));
+
+            return points;
+        }
+
+        var history = f.History.OrderBy(h => h.Month).ToList();
+        for (var i = 0; i < history.Count; i++)
+        {
+            var handover = i == history.Count - 1;
+            var saving = history[i].Saving;
+
+            points.Add(new(
+                history[i].Month,
+                history[i].Month.ToString("MMM yy"),
+                saving,
+                handover ? saving : null,
+                handover ? saving : null,
+                handover ? saving : null));
+        }
+
+        points.AddRange(f.Forecast.Select(r => new ForecastFanChart.FanPoint(
+            r.Month, r.Month.ToString("MMM yy"), null, r.NetP10, r.NetP50, r.NetP90)));
+
+        return points;
+    }
+
+    private static Color NetColor(decimal value) => value >= 0 ? Color.Success : Color.Error;
+
+    private static string Months(int? months) => months is { } m ? $"{m} bulan" : "tidak pernah lunas";
+}
