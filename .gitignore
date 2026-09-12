@@ -69,3 +69,9 @@ tests/**/[Oo]bj/
 src/PortfolioOS.API/models/
 
 appsettings.json
+
+# Compose lokal (berisi konfigurasi/kredensial spesifik mesin)
+docker-compose.yml
+
+# Draft artikel Substack (kerja lokal, bukan bagian aplikasi)
+Draft-For-Publish/

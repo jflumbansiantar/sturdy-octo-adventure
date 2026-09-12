@@ -108,6 +108,48 @@ public class PortfolioApiClient(HttpClient http, AuthService auth)
         return await http.GetFromJsonAsync<SavingsSuggestionModel>($"api/savings/suggestion?months={months}");
     }
 
+    // Forecast
+
+    /// <param name="strategy">
+    /// How instalments are assumed to be paid over the horizon. "MinimumOnly" is the API default,
+    /// because a forecast should describe what happens if nothing changes.
+    /// </param>
+    public async Task<CashflowForecastModel?> GetCashflowForecastAsync(
+        int months = 6, int horizon = 12, decimal extraPayment = 0m, string strategy = "MinimumOnly")
+    {
+        await PrepareAsync();
+        return await http.GetFromJsonAsync<CashflowForecastModel>(
+            $"api/forecast/cashflow?months={months}&horizon={horizon}" +
+            $"&extraPayment={Num(extraPayment)}&strategy={strategy}");
+    }
+
+    public async Task<DebtPayoffPlanModel?> GetDebtPayoffAsync(
+        decimal extraPayment = 0m, string strategy = "Avalanche")
+    {
+        await PrepareAsync();
+        return await http.GetFromJsonAsync<DebtPayoffPlanModel>(
+            $"api/forecast/debt-payoff?extraPayment={Num(extraPayment)}&strategy={strategy}");
+    }
+
+    public async Task<GoalProjectionModel?> GetGoalProjectionAsync(
+        decimal? targetAmount = null, int? emergencyFundMonths = null, int months = 6)
+    {
+        await PrepareAsync();
+
+        var query = $"api/forecast/goal?months={months}";
+        if (targetAmount is { } target) query += $"&targetAmount={Num(target)}";
+        if (emergencyFundMonths is { } fund) query += $"&emergencyFundMonths={fund}";
+
+        return await http.GetFromJsonAsync<GoalProjectionModel>(query);
+    }
+
+    /// <summary>
+    /// Formats a decimal for a query string. Invariant culture is the point: on an id-ID browser
+    /// the default would render 500000,5 and the comma would arrive as a second parameter.
+    /// </summary>
+    private static string Num(decimal value) =>
+        value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
     // Ledger - Accounts
     public async Task<List<LedgerAccountModel>> GetAccountsAsync()
     {
